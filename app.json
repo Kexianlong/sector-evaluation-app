@@ -8,7 +8,6 @@
     "pages/overview/overview",
     "pages/analysis/analysis",
     "pages/detail/detail",
-    "pages/batch/batch",
     "pages/config/config",
     "pages/users/users",
     "pages/instructor-history/instructor-history"

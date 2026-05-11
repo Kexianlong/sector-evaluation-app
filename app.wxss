@@ -29,7 +29,7 @@ view[bindtap]:active, view[catchtap]:active {
 /* 专为卡片/tile等非按钮可点击元素提供更好的反馈 */
 .sector-card:active, .manager-admin-tile:active, .config-sector-card:active,
 .analysis-chip:active, .analysis-trigger:active, .modal-item:active,
-.batch-student-row:active, .batch-checkbox:active,
+
 .trend-viz-btn:active, .trend-retry-btn:active,
 .btn:active, .btn-sm:active, .btn-primary:active, .btn-secondary:active, .btn-danger:active,
 .manager-delete-btn:active, .manager-logout-btn:active,
