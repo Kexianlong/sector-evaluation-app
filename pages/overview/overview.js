@@ -57,8 +57,11 @@ Page({
     isManager: false,
     roleLabel: '',
     levelLabel: '',
+    avatarUrl: '',
+    departmentLabel: '',
     stats: { total: 0, student: 0, instructor: 0, deputy_director: 0, supervisor: 0, department_head: 0, center_director: 0 },
     scoreStats: { totalScores: 0, scoredStudents: 0 },
+    pendingTasks: 0,
     records: [],
     filteredRecords: [],
     sectors: [],
@@ -149,11 +152,19 @@ Page({
       wx.switchTab({ url: '/pages/radar/radar' });
       return;
     }
+    const AVATAR_DEFAULT = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2Ij48Y2lyY2xlIGN4PSI0OCIgY3k9IjQ4IiByPSI0OCIgZmlsbD0iIzFhMmQ0NSIvPjxjaXJjbGUgY3g9IjQ4IiBjeT0iMzYiIHI9IjE0IiBmaWxsPSIjOGE5YmIwIi8+PHBhdGggZD0iTTI0IDc2YzAtMTMuMjU1IDEwLjc0NS0yNCAyNC0yNHMyNCAxMC43NDUgMjQgMjQiIGZpbGw9IiM4YTliYjAiLz48L3N2Zz4=';
+    const AVATAR_MALE = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2Ij48Y2lyY2xlIGN4PSI0OCIgY3k9IjQ4IiByPSI0OCIgZmlsbD0iIzFlM2E1ZiIvPjxjaXJjbGUgY3g9IjQ4IiBjeT0iMzYiIHI9IjE0IiBmaWxsPSIjNjBhNWZhIi8+PHBhdGggZD0iTTI0IDc2YzAtMTMuMjU1IDEwLjc0NS0yNCAyNC0yNHMyNCAxMC43NDUgMjQgMjQiIGZpbGw9IiM2MGE1ZmEiLz48L3N2Zz4=';
+    const AVATAR_FEMALE = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2Ij48Y2lyY2xlIGN4PSI0OCIgY3k9IjQ4IiByPSI0OCIgZmlsbD0iIzNmMWUzYSIvPjxjaXJjbGUgY3g9IjQ4IiBjeT0iMzYiIHI9IjE0IiBmaWxsPSIjZjQ3MmI2Ii8+PHBhdGggZD0iTTI0IDc2YzAtMTMuMjU1IDEwLjc0NS0yNCAyNC0yNHMyNCAxMC43NDUgMjQgMjQiIGZpbGw9IiNmNDcyYjYiLz48L3N2Zz4=';
+    const avatarUrl = userInfo.photoUrl || (userInfo.gender === '女'
+      ? AVATAR_FEMALE
+      : (userInfo.gender === '男' ? AVATAR_MALE : AVATAR_DEFAULT));
     this.setData({
       isStudent: userInfo.role === 'student',
       isManager: true,
       roleLabel: navRoleCaption(userInfo) || userInfo.role,
       levelLabel: computeLevelLabel(userInfo),
+      avatarUrl,
+      departmentLabel: userInfo.department || '',
       reminders: [],
       reminderStats: { icaoExpired: 0, icaoWarning: 0, medicalExpired: 0, medicalWarning: 0 },
       showReminders: false
@@ -275,6 +286,12 @@ Page({
             this.setData({ stats: usersRes.data.stats });
           }
         } catch (userErr) { console.log('[overview] users请求失败', userErr); /* ignore */ }
+        try {
+          const pendingRes = await app.request({ url: '/score-config/pending-count' });
+          if (pendingRes && pendingRes.success && typeof pendingRes.data === 'number') {
+            this.setData({ pendingTasks: pendingRes.data });
+          }
+        } catch (pendingErr) { console.log('[overview] pending-count请求失败', pendingErr); /* ignore */ }
       }
     } catch (e) {
       console.log('[overview] 请求失败，使用模拟数据', e);
@@ -458,6 +475,21 @@ Page({
         wx.showToast({ title: '跳转失败:' + (err.errMsg || '未知错误'), icon: 'none' });
       }
     });
+  },
+  goToScoreConfig() {
+    wx.navigateTo({
+      url: '/pages/score-config/score-config',
+      fail: (err) => wx.showToast({ title: '跳转失败:' + (err.errMsg || '未知错误'), icon: 'none' })
+    });
+  },
+  goToReminders() {
+    wx.navigateTo({
+      url: '/pages/reminders/reminders',
+      fail: (err) => wx.showToast({ title: '跳转失败:' + (err.errMsg || '未知错误'), icon: 'none' })
+    });
+  },
+  goToExport() {
+    wx.showToast({ title: '数据导出功能开发中', icon: 'none' });
   },
   logout() { getApp().logout(); },
 

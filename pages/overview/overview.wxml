@@ -1,10 +1,14 @@
 <view class="container">
   <!-- 用户信息栏 -->
-  <view class="trend-toolbar manager-overview-toolbar" style="margin-bottom:12px;">
-    <view class="trend-user-meta">
-      <text class="trend-user-name">{{userInfo.name || '未登录'}}</text>
-      <text wx:if="{{roleLabel}}" class="identity-badge identity-badge-role">{{roleLabel}}</text>
-      <text wx:if="{{levelLabel}}" class="identity-badge identity-badge-level">{{levelLabel}}</text>
+  <view class="manager-profile-bar">
+    <image class="manager-avatar" src="{{avatarUrl}}" mode="aspectFill" />
+    <view class="manager-profile-meta">
+      <view class="manager-profile-name">
+        <text class="trend-user-name">{{userInfo.name || '未登录'}}</text>
+        <text wx:if="{{roleLabel}}" class="identity-badge identity-badge-role">{{roleLabel}}</text>
+        <text wx:if="{{levelLabel}}" class="identity-badge identity-badge-level">{{levelLabel}}</text>
+      </view>
+      <view wx:if="{{departmentLabel}}" class="manager-profile-dept">{{departmentLabel}}</view>
     </view>
   </view>
 
@@ -17,15 +21,19 @@
   <!-- 统计卡片 -->
   <view wx:if="{{userInfo.role !== 'student'}}" class="manager-stat-strip {{loading ? 'stat-grid-dim' : ''}}">
     <view class="manager-stat-box manager-stat-box--green">
-      <view class="manager-stat-box-label">学员 / STU</view>
+      <view class="manager-stat-box-label">学员</view>
       <view class="manager-stat-box-value">{{loading ? '—' : stats.student}}</view>
     </view>
     <view class="manager-stat-box manager-stat-box--amber">
-      <view class="manager-stat-box-label">已评学员</view>
-      <view class="manager-stat-box-value">{{loading ? '—' : scoreStats.scoredStudents}}</view>
+      <view class="manager-stat-box-label">教员</view>
+      <view class="manager-stat-box-value">{{loading ? '—' : stats.instructor}}</view>
+    </view>
+    <view class="manager-stat-box manager-stat-box--red">
+      <view class="manager-stat-box-label">待评分</view>
+      <view class="manager-stat-box-value">{{loading ? '—' : pendingTasks}}</view>
     </view>
     <view class="manager-stat-box manager-stat-box--blue">
-      <view class="manager-stat-box-label">评分次数</view>
+      <view class="manager-stat-box-label">本月已评</view>
       <view class="manager-stat-box-value">{{loading ? '—' : scoreStats.totalScores}}</view>
     </view>
   </view>
@@ -37,12 +45,32 @@
       <view class="manager-admin-tile" bindtap="goToUsers">
         <view class="manager-admin-tile-icon">👥</view>
         <view class="manager-admin-tile-title">用户管理</view>
-        <view class="manager-admin-tile-sub">USER MANAGEMENT</view>
+        <view class="manager-admin-tile-sub">USER MGMT</view>
       </view>
       <view class="manager-admin-tile" bindtap="goToConfig">
         <view class="manager-admin-tile-icon">⚙️</view>
         <view class="manager-admin-tile-title">扇区配置</view>
-        <view class="manager-admin-tile-sub">SECTOR CONFIG</view>
+        <view class="manager-admin-tile-sub">SECTOR CFG</view>
+      </view>
+      <view class="manager-admin-tile" bindtap="goToScoreConfig">
+        <view class="manager-admin-tile-icon">📋</view>
+        <view class="manager-admin-tile-title">评分任务</view>
+        <view class="manager-admin-tile-sub">SCORE TASK</view>
+      </view>
+      <view class="manager-admin-tile" bindtap="goToUsers">
+        <view class="manager-admin-tile-icon">🔍</view>
+        <view class="manager-admin-tile-title">成绩查询</view>
+        <view class="manager-admin-tile-sub">GRADES</view>
+      </view>
+      <view class="manager-admin-tile" bindtap="goToReminders">
+        <view class="manager-admin-tile-icon">🔔</view>
+        <view class="manager-admin-tile-title">全局提醒</view>
+        <view class="manager-admin-tile-sub">REMINDERS</view>
+      </view>
+      <view class="manager-admin-tile" bindtap="goToExport">
+        <view class="manager-admin-tile-icon">📊</view>
+        <view class="manager-admin-tile-title">数据导出</view>
+        <view class="manager-admin-tile-sub">EXPORT</view>
       </view>
     </view>
   </view>
