@@ -19,7 +19,7 @@
     "navigationBarTextStyle": "white",
     "backgroundColor": "#0a1628"
   },
-  "tabBar": {
+    "tabBar": {
     "custom": true,
     "color": "#4a5d75",
     "selectedColor": "#2563eb",
@@ -30,8 +30,7 @@
       { "pagePath": "pages/trend/trend", "text": "趋势" },
       { "pagePath": "pages/score/score", "text": "数据" },
       { "pagePath": "pages/mygrades/mygrades", "text": "成绩" },
-      { "pagePath": "pages/overview/overview", "text": "管理" },
-      { "pagePath": "pages/analysis/analysis", "text": "分析" }
+      { "pagePath": "pages/overview/overview", "text": "管理" }
     ]
   },
   "style": "v2",

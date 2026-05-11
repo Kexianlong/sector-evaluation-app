@@ -57,10 +57,10 @@
         <view class="manager-admin-tile-title">评分任务</view>
         <view class="manager-admin-tile-sub">SCORE TASK</view>
       </view>
-      <view class="manager-admin-tile" bindtap="goToUsers">
-        <view class="manager-admin-tile-icon">🔍</view>
-        <view class="manager-admin-tile-title">成绩查询</view>
-        <view class="manager-admin-tile-sub">GRADES</view>
+      <view class="manager-admin-tile" bindtap="goToAnalysis">
+        <view class="manager-admin-tile-icon">📈</view>
+        <view class="manager-admin-tile-title">数据分析</view>
+        <view class="manager-admin-tile-sub">ANALYSIS</view>
       </view>
       <view class="manager-admin-tile" bindtap="goToReminders">
         <view class="manager-admin-tile-icon">🔔</view>

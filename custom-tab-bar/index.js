@@ -1,13 +1,12 @@
 const { isStudentRole, isInstructorRole, isManagerRole } = require('../utils/roles.js');
 
-// app.json 中 tabBar.list 注册的真正 tab 页（analysis 不是 tab 页！）
+// app.json 中 tabBar.list 注册的真正 tab 页
 const TAB_PATHS = [
   '/pages/radar/radar',
   '/pages/trend/trend',
   '/pages/score/score',
   '/pages/mygrades/mygrades',
-  '/pages/overview/overview',
-  '/pages/analysis/analysis'
+  '/pages/overview/overview'
 ];
 
 function tabListForRole(role) {
@@ -28,7 +27,6 @@ function tabListForRole(role) {
   }
   if (isManagerRole(role)) {
     return [
-      { pagePath: '/pages/analysis/analysis', text: '分析', iconType: 'analyze' },
       { pagePath: '/pages/trend/trend', text: '详情', iconType: 'trend' },
       { pagePath: '/pages/mygrades/mygrades', text: '评分总览', iconType: 'user' },
       { pagePath: '/pages/overview/overview', text: '管理', iconType: 'building' }
