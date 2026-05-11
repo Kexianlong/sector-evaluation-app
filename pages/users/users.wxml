@@ -109,10 +109,13 @@
         </view>
         <view class="list-item-sub">
           <text>{{item.username}}</text>
+          <text wx:if="{{item.gender}}" style="margin-left: 8px;">{{item.gender}}</text>
+          <text wx:if="{{item.birthDate}}" style="margin-left: 8px;">{{item.birthDate}}</text>
           <text wx:if="{{item.department}}" style="margin-left: 8px;">科室: {{item.department}}</text>
           <text wx:if="{{item.team}}" style="margin-left: 8px;">班组: {{item.team}}</text>
           <text wx:if="{{item.icaoDateShort}}" style="margin-left: 8px;">ICAO: {{item.icaoDateShort}}</text>
           <text wx:if="{{item.medicalDateShort}}" style="margin-left: 8px;">体检: {{item.medicalDateShort}}</text>
+          <text wx:if="{{item.role === 'student' && item.groupEntryDate}}" style="margin-left: 8px;">进组: {{item.groupEntryDate}}</text>
           <text wx:if="{{item.role === 'student' && item.isReleased && item.releasedAtShort}}" style="margin-left: 8px; color: var(--radar-green);">放单时间: {{item.releasedAtShort}}</text>
         </view>
       </view>

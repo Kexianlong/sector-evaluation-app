@@ -70,6 +70,26 @@ function canUseManagerScoreTools(role) {
   return isManagerRole(role);
 }
 
+/** 管理权限：当前用户能否管理目标用户 */
+function canManageUser(currentUser, targetUser) {
+  if (!currentUser || !targetUser) return false;
+  if (currentUser.role === 'center_director') return true;
+  if (['deputy_director', 'department_head', 'supervisor'].includes(currentUser.role)) {
+    return targetUser.department === currentUser.department;
+  }
+  return false;
+}
+
+/** 查看学员成绩权限 */
+function canViewStudentScores(currentUser, targetUser) {
+  if (!currentUser || !targetUser) return false;
+  if (currentUser.role === 'center_director') return true;
+  if (['deputy_director', 'department_head', 'supervisor', 'instructor'].includes(currentUser.role)) {
+    return targetUser.department === currentUser.department;
+  }
+  return currentUser.userId === targetUser.userId;
+}
+
 /** 顶栏副标题：学员显示阶段，其余显示职务简称 */
 function navRoleCaption(userInfo) {
   if (!userInfo || !userInfo.role) return '未登录';
@@ -119,6 +139,8 @@ module.exports = {
   canPickStudents,
   canEnterScores,
   canUseManagerScoreTools,
+  canManageUser,
+  canViewStudentScores,
   navRoleCaption,
   getRoleLabel,
   normalizeInstructorLevel,

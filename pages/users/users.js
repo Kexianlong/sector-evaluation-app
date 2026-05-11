@@ -429,6 +429,15 @@ Page({
       if (editingUser.medicalDate !== undefined) {
         payload.medicalDate = editingUser.medicalDate || '';
       }
+      if (editingUser.gender !== undefined) {
+        payload.gender = editingUser.gender || '';
+      }
+      if (editingUser.birthDate !== undefined) {
+        payload.birthDate = editingUser.birthDate || '';
+      }
+      if (editingUser.groupEntryDate !== undefined) {
+        payload.groupEntryDate = editingUser.groupEntryDate || '';
+      }
       if (editingUser.password) {
         payload.password = editingUser.password;
       }
