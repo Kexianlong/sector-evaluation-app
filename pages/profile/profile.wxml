@@ -1,0 +1,115 @@
+<view class="container">
+  <!-- 顶部卡片 -->
+  <view class="card profile-header-card">
+    <view class="profile-header">
+      <image class="profile-avatar" src="{{avatarUrl}}" mode="aspectFill" />
+      <view class="profile-header-info">
+        <view class="profile-name">{{userInfo.name || '未登录'}}</view>
+        <view class="profile-badges">
+          <text wx:if="{{roleLabel}}" class="identity-badge identity-badge-role">{{roleLabel}}</text>
+          <text wx:if="{{levelLabel}}" class="identity-badge identity-badge-level">{{levelLabel}}</text>
+        </view>
+        <view wx:if="{{department}}" class="profile-dept">{{department}}</view>
+      </view>
+    </view>
+    <view class="profile-actions">
+      <view class="btn btn-sm btn-secondary" bindtap="tapEdit">编辑资料</view>
+    </view>
+  </view>
+
+  <!-- 资料详情 -->
+  <view wx:if="{{!isEditing}}" class="card">
+    <view class="card-title">基本信息</view>
+    <view class="profile-field">
+      <text class="profile-label">姓名</text>
+      <text class="profile-value">{{userInfo.name || '—'}}</text>
+    </view>
+    <view class="profile-field">
+      <text class="profile-label">性别</text>
+      <text class="profile-value">{{userInfo.gender || '—'}}</text>
+    </view>
+    <view class="profile-field">
+      <text class="profile-label">出生日期</text>
+      <text class="profile-value">{{userInfo.birthDate || '—'}}</text>
+    </view>
+    <view class="profile-field">
+      <text class="profile-label">年龄</text>
+      <text class="profile-value">{{age !== null ? age + ' 岁' : '—'}}</text>
+    </view>
+    <view class="profile-field">
+      <text class="profile-label">职务 / 等级</text>
+      <text class="profile-value">{{levelLabel || '—'}}</text>
+    </view>
+  </view>
+
+  <!-- 资质与提醒 -->
+  <view wx:if="{{!isEditing}}" class="card">
+    <view class="card-title">资质与提醒</view>
+    <view class="profile-field">
+      <text class="profile-label">ICAO 到期</text>
+      <text class="profile-value {{!icaoExpiry ? '' : (icaoExpiry <= '2026-06-01' ? 'text-warning' : 'text-normal')}}">{{icaoExpiry || '—'}}</text>
+    </view>
+    <view class="profile-field">
+      <text class="profile-label">体检到期</text>
+      <text class="profile-value {{!medicalExpiry ? '' : (medicalExpiry <= '2026-06-01' ? 'text-warning' : 'text-normal')}}">{{medicalExpiry || '—'}}</text>
+    </view>
+    <view class="profile-field" wx:if="{{age !== null}}">
+      <text class="profile-label">体检有效期</text>
+      <text class="profile-value">{{medicalYears}} 年（{{age}}岁）</text>
+    </view>
+    <view class="profile-field" wx:if="{{userInfo.role === 'student'}}">
+      <text class="profile-label">进组时间</text>
+      <text class="profile-value">{{groupEntryDate || '—'}}</text>
+    </view>
+  </view>
+
+  <!-- 编辑表单 -->
+  <view wx:if="{{isEditing}}" class="card">
+    <view class="card-title">编辑资料</view>
+    <view class="form-group">
+      <view class="form-label">头像</view>
+      <view class="profile-edit-avatar-row" bindtap="chooseAvatar">
+        <image class="profile-edit-avatar" src="{{editForm.photoUrl || avatarUrl}}" mode="aspectFill" />
+        <text class="aux-text">点击更换头像</text>
+      </view>
+    </view>
+    <view class="form-group">
+      <view class="form-label">姓名</view>
+      <input class="input" value="{{editForm.name}}" data-field="name" bindinput="onInputChange" placeholder="请输入姓名" />
+    </view>
+    <view class="form-group">
+      <view class="form-label">性别</view>
+      <picker bindchange="onGenderChange" range="{{['男','女']}}">
+        <view class="input">{{editForm.gender}}</view>
+      </picker>
+    </view>
+    <view class="form-group">
+      <view class="form-label">出生日期</view>
+      <picker mode="date" value="{{editForm.birthDate}}" data-field="birthDate" bindchange="onInputChange">
+        <view class="input">{{editForm.birthDate || '请选择'}}</view>
+      </picker>
+    </view>
+    <view class="form-group">
+      <view class="form-label">ICAO 到期时间</view>
+      <picker mode="date" value="{{editForm.icaoExpiry}}" data-field="icaoExpiry" bindchange="onInputChange">
+        <view class="input">{{editForm.icaoExpiry || '请选择'}}</view>
+      </picker>
+    </view>
+    <view class="form-group">
+      <view class="form-label">体检到期时间</view>
+      <picker mode="date" value="{{editForm.medicalExpiry}}" data-field="medicalExpiry" bindchange="onInputChange">
+        <view class="input">{{editForm.medicalExpiry || '请选择'}}</view>
+      </picker>
+    </view>
+    <view class="form-group" wx:if="{{userInfo.role === 'student'}}">
+      <view class="form-label">进组时间</view>
+      <picker mode="date" value="{{editForm.groupEntryDate}}" data-field="groupEntryDate" bindchange="onInputChange">
+        <view class="input">{{editForm.groupEntryDate || '请选择'}}</view>
+      </picker>
+    </view>
+    <view class="profile-edit-actions">
+      <view class="btn btn-primary btn-block" bindtap="saveProfile">保存</view>
+      <view class="btn btn-secondary btn-block" style="margin-top:10px;" bindtap="cancelEdit">取消</view>
+    </view>
+  </view>
+</view>

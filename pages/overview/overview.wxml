@@ -1,6 +1,6 @@
 <view class="container">
   <!-- 用户信息栏 -->
-  <view class="manager-profile-bar">
+  <view class="manager-profile-bar" bindtap="goToProfile">
     <image class="manager-avatar" src="{{avatarUrl}}" mode="aspectFill" />
     <view class="manager-profile-meta">
       <view class="manager-profile-name">
@@ -10,6 +10,7 @@
       </view>
       <view wx:if="{{departmentLabel}}" class="manager-profile-dept">{{departmentLabel}}</view>
     </view>
+    <text class="list-item-arrow" style="margin-left:auto;">›</text>
   </view>
 
   <!-- 错误提示 -->

@@ -1,7 +1,7 @@
 <view class="container">
   <!-- 用户信息栏 -->
   <view class="trend-toolbar">
-    <view class="trend-user-meta">
+    <view class="trend-user-meta" bindtap="goToProfile">
       <image wx:if="{{avatarUrl}}" class="trend-avatar" src="{{avatarUrl}}" mode="aspectFill" />
       <view class="trend-user-text">
         <view class="trend-user-name-row">
@@ -11,6 +11,7 @@
         </view>
         <view class="trend-page-note">{{isInstructor ? '全员最近一次评分总览' : '历次评估记录（最近在前）'}}</view>
       </view>
+      <text class="list-item-arrow" style="margin-left:auto;color:var(--text-muted);">›</text>
     </view>
   </view>
 

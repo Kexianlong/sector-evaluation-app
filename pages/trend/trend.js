@@ -69,6 +69,13 @@ Page({
     this._launchTime = Date.now();
   },
 
+  goToProfile() {
+    wx.navigateTo({
+      url: '/pages/profile/profile',
+      fail: (err) => wx.showToast({ title: '跳转失败', icon: 'none' })
+    });
+  },
+
   onShow() {
     tabBarInit(this);
     const userInfo = app.globalData.userInfo;

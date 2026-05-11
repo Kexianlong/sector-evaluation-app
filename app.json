@@ -10,7 +10,8 @@
     "pages/detail/detail",
     "pages/config/config",
     "pages/users/users",
-    "pages/instructor-history/instructor-history"
+    "pages/instructor-history/instructor-history",
+    "pages/profile/profile"
   ],
   "window": {
     "backgroundTextStyle": "light",

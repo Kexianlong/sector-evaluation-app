@@ -494,6 +494,12 @@ Page({
       fail: (err) => wx.showToast({ title: '跳转失败:' + (err.errMsg || '未知错误'), icon: 'none' })
     });
   },
+  goToProfile() {
+    wx.navigateTo({
+      url: '/pages/profile/profile',
+      fail: (err) => wx.showToast({ title: '跳转失败:' + (err.errMsg || '未知错误'), icon: 'none' })
+    });
+  },
   goToExport() {
     wx.showToast({ title: '数据导出功能开发中', icon: 'none' });
   },
