@@ -1,0 +1,265 @@
+/* pages/radar/radar.wxss */
+
+/* ==================== 扇区网格（与trend页面一致） ==================== */
+.trend-sector-grid {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.trend-sector-grid .sector-card {
+  flex: 1;
+  min-width: 60px;
+  max-width: 120px;
+}
+
+.sector-card {
+  flex: 1;
+  text-align: center;
+  padding: 10px 0;
+  background: #1a2d45;
+  border: 1px solid #1e3a5f;
+  border-radius: 8px;
+}
+
+.sector-card.active {
+  border-color: #2563eb !important;
+  background: linear-gradient(135deg, #1e3a5f, #132238) !important;
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.25);
+}
+
+.trend-sector-title {
+  font-weight: 700;
+  font-size: 15px;
+  font-family: monospace;
+}
+
+.trend-sector-subtitle {
+  font-size: 10px;
+  margin-top: 2px;
+}
+
+/* ==================== 弹窗 ==================== */
+.popup-mask {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(10, 22, 40, 0.85);
+  z-index: 10001;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.popup-content {
+  background: var(--bg-secondary);
+  width: 100%;
+  max-height: 70vh;
+  border-radius: 16px 16px 0 0;
+  padding: 20px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  overflow-y: auto;
+  border-top: 1px solid var(--border-color);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* ==================== 工具栏 ==================== */
+.radar-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+.radar-student-select {
+  font-size: 12px;
+  color: var(--accent-blue);
+  padding: 6px 12px;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: 6px;
+  background: rgba(37, 99, 235, 0.06);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ==================== 分数卡片 ==================== */
+.radar-score-card {
+  text-align: center;
+  padding: 24px 20px;
+  background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
+  border: 1px solid var(--border-color);
+  margin-bottom: 12px;
+  border-radius: 8px;
+}
+
+.radar-score-title {
+  font-size: 12px;
+  color: var(--text-secondary);
+  letter-spacing: 2px;
+}
+
+.radar-score-value {
+  font-size: 48px;
+  font-weight: 800;
+  margin: 8px 0;
+  font-family: 'SF Mono', Monaco, monospace;
+  letter-spacing: 2px;
+}
+
+.radar-score-no-data {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-muted);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.radar-score-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 10px;
+  font-family: 'SF Mono', Monaco, monospace;
+}
+
+/* ==================== 图表区域 ==================== */
+.radar-chart-card {
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.radar-chart-fallback {
+  padding: 12px 8px;
+  color: var(--text-muted) !important;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ==================== 评分明细行 ==================== */
+.radar-score-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--bg-tertiary);
+  min-height: 48px;
+}
+.radar-score-row:last-child { border-bottom: none; }
+.radar-score-row:active { background: var(--bg-tertiary); border-radius: 6px; }
+.radar-history-active {
+  background: rgba(37, 99, 235, 0.12) !important;
+  border-radius: 6px;
+  border-left: 3px solid #2563eb;
+  padding-left: 9px;
+}
+
+.radar-score-left { flex: 1; padding-right: 8px; min-width: 0; }
+.radar-score-name { font-size: 14px; color: var(--text-primary); word-break: break-word; overflow-wrap: break-word; }
+.radar-score-max { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.radar-score-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.radar-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.radar-popup-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.radar-popup-close {
+  min-width: 40px; min-height: 40px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  font-size: 20px; line-height: 1;
+  color: var(--text-muted);
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0;
+}
+.radar-popup-close:active { background: var(--border-color); color: var(--text-primary); }
+
+.radar-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 4px;
+}
+.radar-detail-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.radar-detail-left { flex: 1; padding-right: 8px; min-width: 0; }
+.radar-detail-name { font-size: 14px; color: var(--text-primary); word-break: break-word; overflow-wrap: break-word; }
+.radar-detail-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; word-break: break-word; overflow-wrap: break-word; }
+.radar-detail-deduct { font-size: 11px; color: var(--alert-red); margin-top: 2px; word-break: break-word; overflow-wrap: break-word; }
+.radar-detail-right { flex-shrink: 0; text-align: right; display: flex; align-items: center; gap: 6px; }
+.radar-detail-score { font-size: 13px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace; }
+
+/* 扣分项红色突出显示 */
+.radar-detail-item--danger {
+  border-left: 3px solid var(--alert-red, #ff4d4f) !important;
+  background: rgba(255, 77, 79, 0.08) !important;
+  border-radius: 6px;
+  padding: 10px 8px !important;
+  margin-bottom: 6px;
+}
+.radar-detail-item--danger:active {
+  background: rgba(255, 77, 79, 0.15) !important;
+}
+.radar-detail-reason {
+  margin-top: 6px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: rgba(255, 77, 79, 0.12);
+  border-left: 2px solid rgba(255, 77, 79, 0.4);
+  font-size: 11px;
+  color: #ff6b6b;
+  line-height: 1.5;
+}
+.radar-detail-reason-empty {
+  color: var(--text-muted);
+}
+
+/* ==================== 个人到期提醒横幅 ==================== */
+.personal-reminder-banner {
+  margin-bottom: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.personal-reminder-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.personal-reminder-expired {
+  background: rgba(255, 77, 79, 0.08);
+  border: 1px solid rgba(255, 77, 79, 0.2);
+  color: #ff4d4f;
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+.personal-reminder-warning {
+  background: rgba(255, 170, 0, 0.08);
+  border: 1px solid rgba(255, 170, 0, 0.2);
+  color: #ffaa00;
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+.personal-reminder-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+.personal-reminder-text {
+  flex: 1;
+  color: var(--text-primary, #e8ecf1);
+}
+.personal-reminder-action {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+  flex-shrink: 0;
+}

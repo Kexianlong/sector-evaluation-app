@@ -1,0 +1,197 @@
+/* pages/config/config.wxss */
+
+/* 禁用输入框样式 */
+.input[disabled] {
+  opacity: 0.5;
+  background: #0f1d30 !important;
+}
+
+/* 分类卡片额外样式 */
+.card .form-group:last-child {
+  margin-bottom: 0;
+}
+
+/* 添加按钮hover效果 */
+.card[style*="border:1px dashed"] {
+  transition: all 0.2s;
+}
+
+.card[style*="border:1px dashed"]:active {
+  background: var(--bg-tertiary, #1a2d45);
+  border-color: var(--accent-blue, #2563eb) !important;
+}
+
+/* ==================== 上传提示 ==================== */
+.manager-config-upload-hint {
+  padding: 10px;
+  background: rgba(10, 22, 40, 0.5);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-secondary, #8a9bb0);
+  margin-bottom: 12px;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.6;
+}
+
+.manager-config-upload-hint-line {
+  margin-top: 2px;
+}
+
+.manager-config-upload-hint-muted {
+  margin-top: 2px;
+  color: var(--text-muted, #4a5d75);
+}
+
+/* ==================== 配置操作按钮 ==================== */
+.manager-config-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.manager-config-action-btn {
+  flex: 1;
+  min-width: 120px;
+}
+
+/* ==================== 模态框关闭 ==================== */
+.manager-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted, #4a5d75);
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px;
+}
+
+/* ==================== 骨架屏 ==================== */
+.manager-config-detail-skeleton {
+  margin-bottom: 12px;
+}
+
+/* ==================== 备份提交 ==================== */
+.manager-backup-submit {
+  margin-top: 8px;
+}
+
+/* 扇区列表卡片 */
+.config-sector-card {
+  margin-bottom: 10px;
+  background: var(--bg-secondary, #132238);
+  border-radius: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color, #1e3a5f);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.config-sector-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.config-sector-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.config-sector-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary, #e8ecf1);
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.config-sector-meta {
+  font-size: 11px;
+  color: var(--text-muted, #4a5d75);
+  margin-top: 2px;
+  font-family: monospace;
+}
+
+.config-sector-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.config-sector-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.config-sector-btn-edit {
+  background: var(--bg-blue-light);
+  color: var(--accent-blue, #2563eb);
+  border: 1px solid var(--border-blue-light);
+}
+
+.config-sector-btn-delete {
+  background: var(--bg-red-light);
+  color: var(--alert-red, #ff4d4f);
+  border: 1px solid var(--border-red-light);
+}
+
+.config-empty-tip {
+  font-size: 13px;
+  color: var(--text-muted, #4a5d75);
+  margin-top: 8px;
+}
+
+.config-main-actions {
+  margin-top: 16px;
+  margin-bottom: 30px;
+}
+
+.config-primary-btn {
+  padding: 11px 0;
+  text-align: center;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.config-upload-btn {
+  background: rgba(7, 193, 96, 0.1);
+  color: #07c160;
+  border: 1px solid rgba(7, 193, 96, 0.3);
+}
+
+.config-create-btn {
+  background: var(--accent-blue, #2563eb);
+  color: #fff;
+}
+
+.config-backup-trigger {
+  text-align: center;
+  padding: 12px 0;
+  background: var(--bg-tertiary, #1a2d45);
+  color: var(--text-secondary, #8a9bb0);
+  border: 1px solid var(--border-color, #1e3a5f);
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 30px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==================== 小屏适配 ==================== */
+@media (max-width: 375px) {
+  .manager-config-actions {
+    flex-direction: column;
+  }
+  .manager-config-action-btn {
+    min-width: 100%;
+  }
+}

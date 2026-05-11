@@ -1,0 +1,317 @@
+/* pages/users/users.wxss */
+
+/* ==================== 用户列表行 ==================== */
+.list-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  gap: 8px;
+}
+
+.list-item-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 3px;
+}
+
+/* ==================== 标签系统 ==================== */
+.tag-green {
+  display: inline-block;
+  font-size: 11px;
+  color: var(--radar-green, #00d26a);
+  padding: 0 6px;
+  border: 1px solid rgba(0, 210, 106, 0.3);
+  border-radius: 3px;
+  background: rgba(0, 210, 106, 0.1);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.tag-amber {
+  display: inline-block;
+  font-size: 11px;
+  color: var(--amber, #ffaa00);
+  padding: 0 6px;
+  border: 1px solid rgba(255, 170, 0, 0.3);
+  border-radius: 3px;
+  background: rgba(255, 170, 0, 0.1);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* ==================== 放单筛选 ==================== */
+.users-release-filters {
+  margin-bottom: 10px;
+}
+
+.users-release-tab.active {
+  background: var(--bg-amber-light);
+  color: var(--amber, #ffaa00);
+  border-color: var(--border-amber-light);
+}
+
+.user-card-release-badge {
+  font-size: 11px;
+  color: var(--radar-green, #00d26a);
+  padding: 1px 6px;
+  border: 1px solid var(--border-green-light);
+  border-radius: 3px;
+  background: var(--bg-green-light);
+}
+
+.user-card-btn-release {
+  background: var(--bg-green-light);
+  color: var(--radar-green, #00d26a);
+  border: 1px solid var(--border-green-light);
+}
+
+.user-card-btn-cancel {
+  background: var(--bg-amber-light);
+  color: var(--amber, #ffaa00);
+  border: 1px solid var(--border-amber-light);
+}
+
+/* ==================== 新增按钮 ==================== */
+.user-new-btn {
+  padding: 12px 0;
+  text-align: center;
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--accent-blue, #2563eb);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.user-new-btn:active {
+  background: rgba(37, 99, 235, 0.2);
+}
+
+/* ==================== 弹窗表单 ==================== */
+.popup-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 22, 40, 0.85);
+  z-index: 10001;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.popup-content {
+  background: var(--bg-secondary, #132238);
+  width: 100%;
+  max-height: calc(100vh - 70px);
+  border-radius: 16px 16px 0 0;
+  padding: 20px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  overflow-y: auto;
+  border-top: 1px solid var(--border-color, #1e3a5f);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--bg-tertiary, #1a2d45);
+}
+
+.popup-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary, #e8ecf1);
+}
+
+.popup-close {
+  font-size: 22px;
+  color: var(--text-muted, #4a5d75);
+  padding: 4px;
+  line-height: 1;
+}
+
+.popup-close:active {
+  color: var(--text-primary, #e8ecf1);
+}
+
+/* ==================== 表单输入 ==================== */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary, #8a9bb0);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.input {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border-color, #1e3a5f);
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+  background: var(--bg-primary, #0a1628);
+  color: var(--text-primary, #e8ecf1);
+}
+
+.input::placeholder {
+  color: var(--text-muted, #4a5d75);
+}
+
+/* Picker 模拟 input 样式 */
+.picker-input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-primary, #0a1628);
+}
+
+.picker-arrow {
+  color: var(--text-muted, #4a5d75);
+  font-size: 12px;
+}
+
+/* ==================== 弹窗底部按钮 ==================== */
+.popup-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.popup-btn {
+  flex: 1;
+  text-align: center;
+  padding: 12px 0;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.popup-btn-cancel {
+  background: var(--bg-tertiary, #1a2d45);
+  color: var(--text-secondary, #8a9bb0);
+}
+
+.popup-btn-cancel:active {
+  background: var(--border-color, #1e3a5f);
+}
+
+.popup-btn-save {
+  background: var(--accent-blue, #2563eb);
+  color: #fff;
+  font-weight: 600;
+}
+
+.popup-btn-save:active {
+  background: #1d4ed8;
+}
+
+/* ==================== 必填标记 ==================== */
+.required {
+  color: var(--alert-red, #ff4d4f);
+}
+
+/* ==================== 小屏适配 ==================== */
+
+/* ==================== 到期提醒样式 ==================== */
+
+/* 提醒汇总卡片 */
+.reminder-summary-card {
+  background: rgba(255, 77, 79, 0.04);
+  border-color: rgba(255, 77, 79, 0.18);
+}
+
+.reminder-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.reminder-item {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--bg-tertiary, #1a2d45);
+}
+
+.reminder-item:last-child {
+  border-bottom: none;
+}
+
+.reminder-item-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.reminder-item-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* 到期状态标签 */
+.expiry-tag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 3px;
+  line-height: 1.6;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.expiry-warning {
+  color: #ffaa00;
+  background: rgba(255, 170, 0, 0.1);
+  border: 1px solid rgba(255, 170, 0, 0.3);
+}
+
+.expiry-expired {
+  color: #ff4d4f;
+  background: rgba(255, 77, 79, 0.1);
+  border: 1px solid rgba(255, 77, 79, 0.3);
+}
+
+.expiry-normal {
+  color: #00d26a;
+  background: rgba(0, 210, 106, 0.1);
+  border: 1px solid rgba(0, 210, 106, 0.3);
+}
+@media (max-width: 375px) {
+  .popup-content {
+    padding: 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+  .list-item-name-row .list-item-title {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 320px) {
+  .list-item-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .manager-user-actions {
+    margin-top: 4px;
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

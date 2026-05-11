@@ -1,0 +1,93 @@
+/* pages/instructor-history/instructor-history.wxss */
+/* 大部分基础样式已在 app.wxss 中定义，此文件保留页面特定覆盖 */
+
+.card {
+  overflow: hidden;
+}
+
+.history-row {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--bg-tertiary, #1a2d45);
+}
+
+.history-row:last-child {
+  border-bottom: none;
+}
+
+.history-row-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.history-student-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #e8ecf1);
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.history-score-line {
+  font-size: 12px;
+  color: var(--text-secondary, #8a9bb0);
+  margin-top: 4px;
+}
+
+/* 筛选器增强 */
+.instructor-history-filters .form-input {
+  min-height: 40px;
+}
+
+.inst-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+}
+
+.inst-clear-btn {
+  text-align: center;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 扣分项突出显示 */
+.inst-deduct-item {
+  border-left: 3px solid #ef4444 !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+  margin-top: 8px;
+  margin-bottom: 6px;
+  transition: background 0.2s ease;
+}
+
+.inst-deduct-item:active {
+  background: rgba(239, 68, 68, 0.15) !important;
+}
+
+.inst-deduct-reason {
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #f87171;
+  line-height: 1.5;
+}
+
+/* 小屏适配 */
+@media (max-width: 375px) {
+  .instructor-history-filters .form-input {
+    font-size: 12px;
+    height: 40px;
+  }
+}
+
+@media (max-width: 320px) {
+  .history-student-name {
+    font-size: 13px;
+  }
+}

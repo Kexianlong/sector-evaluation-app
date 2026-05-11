@@ -1,0 +1,127 @@
+<view class="container">
+  <!-- 用户信息栏 -->
+  <view class="radar-toolbar">
+    <view class="trend-user-meta">
+      <text class="trend-user-name">{{userInfo.name || '未登录'}}</text>
+      <text wx:if="{{roleLabel}}" class="identity-badge identity-badge-role">{{roleLabel}}</text>
+      <text wx:if="{{levelLabel}}" class="identity-badge identity-badge-level">{{levelLabel}}</text>
+    </view>
+    <view style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+      <block wx:if="{{isInstructor}}">
+        <picker bindchange="onStudentChange" range="{{students}}" range-key="name">
+          <view class="radar-student-select">{{selectedStudentName || '选择学员'}}</view>
+        </picker>
+      </block>
+
+    </view>
+  </view>
+
+  <!-- 个人到期提醒 -->
+  <view wx:if="{{myReminders.length > 0}}" class="personal-reminder-banner">
+    <view wx:for="{{myReminders}}" wx:key="type" class="personal-reminder-item personal-reminder-{{item.status}}">
+      <text class="personal-reminder-icon">{{item.status === 'expired' ? '🔴' : '🟡'}}</text>
+      <text class="personal-reminder-text"><text style="font-weight:600;">{{item.label}}</text>：{{item.status === 'expired' ? '已过期' : '即将到期'}}（{{item.date}}，{{item.message}}）</text>
+      <text class="personal-reminder-action">请尽快更新</text>
+    </view>
+  </view>
+
+  <!-- 扇区快速切换 -->
+  <view class="trend-sector-grid">
+    <view wx:for="{{sectors}}" wx:key="id"
+          class="sector-card {{currentSector === item.id ? 'active' : ''}}"
+          bindtap="switchSector" data-sector="{{item.id}}">
+      <view class="trend-sector-title">{{item.name}}</view>
+      <view class="trend-sector-subtitle">扇区</view>
+    </view>
+  </view>
+
+  <!-- 综合评分大卡片 -->
+  <view class="card radar-score-card">
+    <view class="radar-score-title">综合评分 / TOTAL SCORE</view>
+    <view class="radar-score-value" style="color:{{rawScores ? grade.color : '#4a5d75'}};text-shadow:0 0 16px {{rawScores ? grade.color + '40' : 'transparent'}};">
+      {{rawScores ? totalScore : '—'}}
+    </view>
+    <view class="score-badge {{rawScores ? grade.class : ''}} {{!rawScores ? 'radar-score-no-data' : ''}}">
+      {{rawScores ? grade.text : '无数据'}}
+    </view>
+    <view class="radar-score-meta">
+      合格线 85 | 优秀线 95 | 满分 {{maxScore || 100}}
+    </view>
+  </view>
+
+  <!-- 雷达图 -->
+  <view class="card radar-chart-card">
+    <view class="card-title">学员能力详情</view>
+    <view wx:if="{{!rawScores}}" class="radar-chart-fallback">暂无数据</view>
+    <canvas wx:else type="2d" id="radarCanvas" style="width:100%;height:300px;"></canvas>
+  </view>
+
+  <!-- 分类得分明细 -->
+  <view class="card">
+    <view class="card-title">各项得分明细</view>
+    <view wx:if="{{!rawScores}}" class="radar-chart-fallback">暂无数据</view>
+    <block wx:else>
+      <view wx:for="{{categories}}" wx:key="name" wx:for-index="idx"
+            class="list-item radar-score-row"
+            bindtap="showDetail"
+            data-index="{{idx}}">
+        <view class="radar-score-left">
+          <view class="radar-score-name">{{item.name}}</view>
+          <view class="radar-score-max">满分 {{item.max}} 分</view>
+        </view>
+        <view class="radar-score-right">
+          <view class="progress-bar" style="width:60px;">
+            <view class="progress-fill" style="width:{{(item.score/item.max*100)}}%;background:{{item.score >= item.max*0.9 ? '#00d26a' : item.score >= item.max*0.75 ? '#ffaa00' : '#60a5fa'}};"></view>
+          </view>
+          <text class="score-badge {{item.score >= item.max * 0.9 ? 'score-excellent' : item.score >= item.max * 0.75 ? 'score-good' : 'score-pass'}}">{{item.score}}</text>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <!-- 评分历史记录 -->
+  <view wx:if="{{scoreHistory.length > 0}}" class="card" style="margin-top:12px;">
+    <view class="card-title">评分记录（{{scoreHistory.length}}次）</view>
+    <view wx:for="{{scoreHistory}}" wx:key="scoreId" wx:for-index="idx"
+          class="list-item radar-score-row {{selectedScoreIndex === idx ? 'radar-history-active' : ''}}"
+          bindtap="selectScoreHistory" data-index="{{idx}}">
+      <view class="radar-score-left">
+        <view class="radar-score-name">{{item.date || '-'}}</view>
+        <view class="radar-score-max">{{item.sectorName || ''}}</view>
+      </view>
+      <view class="radar-score-right">
+        <text class="score-badge {{item._grade.class}}">{{item.totalScore || 0}}分</text>
+        <text style="font-size:10px;color:var(--text-muted);margin-left:6px;">{{item._grade.text}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 详情弹窗 -->
+  <view wx:if="{{showDetailPopup}}" class="popup-mask" bindtap="hideDetail">
+    <view class="popup-content" catchtap="preventHide">
+      <view class="radar-popup-header">
+        <view class="radar-popup-title">{{selectedCategory}}</view>
+        <view bindtap="hideDetail" class="radar-popup-close">✕</view>
+      </view>
+      <view wx:if="{{detailItems.length === 0}}" class="empty-state" style="padding:20px;">
+        <view class="empty-text">暂无子项配置数据</view>
+      </view>
+      <view wx:for="{{detailItems}}" wx:key="deductKey" class="list-item {{item.isDeducted ? 'radar-detail-item--danger' : ''}}" bindtap="toggleDeductExpand" data-key="{{item.deductKey}}">
+        <view class="radar-detail-row">
+          <view class="radar-detail-left">
+            <view class="radar-detail-name">{{item.name}}</view>
+            <view wx:if="{{item.deductionTemplate && !item.isDeducted}}" class="radar-detail-desc">{{item.deductionTemplate}}</view>
+            <view wx:if="{{item.isDeducted && expandedDeductKey === item.deductKey}}" class="radar-detail-deduct">扣 {{item.maxScore - item.score}} 分（{{item.score}}/{{item.maxScore}}）</view>
+          </view>
+          <view class="radar-detail-right">
+            <text wx:if="{{item.hasScore}}" class="radar-detail-score" style="{{item.isDeducted ? 'color:var(--alert-red);' : 'color:var(--radar-green);'}}">{{item.score}} / {{item.maxScore}}</text>
+            <text wx:else class="radar-detail-score" style="color:var(--text-muted);">满分 {{item.maxScore || 0}}</text>
+            <text wx:if="{{item.isDeducted}}" style="font-size:11px;color:var(--text-muted);">{{expandedDeductKey === item.deductKey ? '▼' : '▶'}}</text>
+          </view>
+        </view>
+        <view wx:if="{{expandedDeductKey === item.deductKey && item.deductionReason}}" class="radar-detail-reason">{{item.deductionReason}}</view>
+        <view wx:if="{{expandedDeductKey === item.deductKey && !item.deductionReason && item.isDeducted}}" class="radar-detail-reason radar-detail-reason-empty">未填写扣分原因</view>
+      </view>
+    </view>
+  </view>
+</view>

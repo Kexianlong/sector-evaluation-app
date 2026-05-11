@@ -1,0 +1,174 @@
+/* pages/mygrades/mygrades.wxss */
+
+/* 筛选栏 */
+.mygrades-filters {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.mygrades-filter-input {
+  flex: 1;
+  height: 36px;
+  font-size: 13px;
+  min-height: 36px;
+}
+
+.mygrades-picker {
+  height: 36px;
+  line-height: 36px;
+  padding: 0 10px;
+  background: var(--bg-tertiary, #1a2d45);
+  border: 1px solid var(--border-color, #1e3a5f);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-secondary, #8a9bb0);
+  white-space: nowrap;
+  min-width: 80px;
+  text-align: center;
+}
+
+/* 排名徽章 */
+.analysis-rank-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--bg-tertiary, #1a2d45);
+  color: var(--text-muted, #4a5d75);
+  border: 1px solid var(--border-color, #1e3a5f);
+  flex-shrink: 0;
+}
+
+/* 得分条区域 */
+.mygrades-score-section {
+  border: 1px solid var(--border-color, #1e3a5f);
+  border-radius: 8px;
+  background: rgba(10, 22, 40, 0.7);
+  padding: 10px;
+}
+
+.mygrades-score-bar {
+  display: flex;
+  align-items: center;
+  padding: 3px 0;
+}
+
+.mygrades-score-bar-name {
+  font-size: 11px;
+  color: var(--text-secondary, #8a9bb0);
+  width: 56px;
+  flex-shrink: 0;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mygrades-score-bar-val {
+  font-size: 11px;
+  color: var(--text-primary, #e8ecf1);
+  width: 28px;
+  text-align: right;
+  flex-shrink: 0;
+  font-family: 'SF Mono', Monaco, monospace;
+}
+
+/* 等级文字 */
+.trend-grade-text {
+  font-size: 11px;
+  color: var(--text-muted, #4a5d75);
+  margin-top: 2px;
+  text-align: right;
+}
+
+/* 弹窗标题 */
+.popup-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary, #e8ecf1);
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--bg-tertiary, #1a2d45);
+}
+
+/* 雷达得分行 */
+.radar-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--bg-tertiary, #1a2d45);
+}
+
+.radar-score-row:last-child {
+  border-bottom: none;
+}
+
+.radar-score-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.radar-score-name {
+  font-size: 13px;
+  color: var(--text-primary, #e8ecf1);
+}
+
+.radar-score-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.radar-score-progress {
+  width: 80px;
+}
+
+.radar-score-value-badge {
+  min-width: 28px;
+  text-align: center;
+}
+
+/* 扣分项增强 */
+.mygrades-deduct-item {
+  border-left: 3px solid #ef4444 !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+}
+
+.mygrades-deduct-reason {
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #f87171;
+  line-height: 1.5;
+}
+
+/* 小屏优化 */
+@media (max-width: 375px) {
+  .mygrades-filter-input {
+    font-size: 12px;
+  }
+  .mygrades-picker {
+    font-size: 11px;
+    padding: 0 6px;
+    min-width: 64px;
+  }
+  .mygrades-score-bar-name {
+    width: 48px;
+    font-size: 10px;
+  }
+}

@@ -1,0 +1,208 @@
+<view class="container">
+  <!-- 列表视图 -->
+  <block wx:if="{{!editing}}">
+    <view class="page-header" style="background:transparent; padding:0 0 16px 0; border:none; display:flex; justify-content:space-between; align-items:flex-start;">
+      <view>
+        <view class="page-header-title">扇区配置</view>
+        <view class="page-header-subtitle">SECTOR CONFIG</view>
+      </view>
+      <view bindtap="newSector" class="btn btn-primary btn-sm" style="height:32px; min-height:32px; border-radius:16px; padding:0 16px; flex-shrink:0;">
+        <text style="margin-right:4px;">+</text> 新增扇区
+      </view>
+    </view>
+
+    <!-- 用户信息栏 -->
+    <view class="trend-toolbar" style="margin-bottom:12px;">
+      <view class="trend-user-meta">
+        <text class="trend-user-name" style="font-size:14px;">{{userInfo.name || '管理员'}}</text>
+        <text wx:if="{{roleLabel}}" class="identity-badge identity-badge-role">{{roleLabel}}</text>
+      </view>
+    </view>
+
+    <view wx:for="{{sectors}}" wx:key="sectorId" class="config-sector-card">
+      <view class="config-sector-head">
+        <view class="config-sector-main">
+          <view class="config-sector-name">{{item.name}}</view>
+          <view class="config-sector-meta">{{item.sectorId}} · {{item.categories.length}}个分类 · 满分{{item.totalScore}}</view>
+        </view>
+        <view class="config-sector-actions">
+          <view bindtap="editSector" data-id="{{item.sectorId}}" class="config-sector-btn config-sector-btn-edit">编辑</view>
+          <view bindtap="deleteSector" data-id="{{item.sectorId}}" class="config-sector-btn config-sector-btn-delete">删除</view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{sectors.length === 0 && !loading}}" class="empty-state">
+      <view class="empty-icon">⚙️</view>
+      <view class="empty-text">暂无扇区配置</view>
+      <view class="config-empty-tip">点击下方按钮新增</view>
+    </view>
+
+    <view class="manager-config-actions config-main-actions">
+      <view bindtap="uploadExcel" class="manager-config-action-btn config-primary-btn config-upload-btn" style="flex:1;">📁 上传Excel</view>
+    </view>
+
+    <!-- 数据备份按钮 -->
+    <view bindtap="toggleBackupModal" class="config-backup-trigger">
+      💾 数据备份下载
+    </view>
+  </block>
+
+  <!-- 编辑视图 -->
+  <block wx:if="{{editing}}">
+    <view style="display:flex;align-items:center;margin-bottom:12px;gap:8px;">
+      <view bindtap="cancelEdit" style="color:var(--text-secondary);font-size:13px;padding:4px 8px;">← 返回</view>
+      <view style="font-size:16px;font-weight:700;color:var(--text-primary);">{{isNew ? '新增扇区' : '编辑扇区'}}</view>
+    </view>
+
+    <!-- 基本信息 -->
+    <view class="card" style="margin-bottom:12px;">
+      <view bindtap="importFromExcel" style="text-align:center;padding:10px 0;background:#07c16015;color:#07c160;border:1px dashed #07c16040;border-radius:6px;font-size:13px;font-weight:600;margin-bottom:12px;">📁 从Excel导入</view>
+      <view class="form-group">
+        <view class="form-label">扇区ID <text style="color:var(--alert-red);">*</text></view>
+        <input class="input" value="{{editingSector.sectorId}}" placeholder="如 ACC02_32" disabled="{{!isNew}}"
+               data-field="sectorId" bindinput="updateSectorField"
+               style="background:var(--bg-primary);border-color:var(--border-color);color:var(--text-primary);font-family:monospace;" />
+      </view>
+      <view class="form-group">
+        <view class="form-label">扇区名称 <text style="color:var(--alert-red);">*</text></view>
+        <input class="input" value="{{editingSector.name}}" placeholder="如 ACC02/32扇区"
+               data-field="name" bindinput="updateSectorField"
+               style="background:var(--bg-primary);border-color:var(--border-color);color:var(--text-primary);" />
+      </view>
+      <view class="form-group" style="margin-bottom:0;">
+        <view class="form-label">总分 <text style="color:var(--alert-red);">*</text></view>
+        <input class="input" type="number" value="{{editingSector.totalScore}}" placeholder="自动计算"
+               data-field="totalScore" bindinput="updateSectorField"
+               style="background:var(--bg-primary);border-color:var(--border-color);color:var(--text-primary);font-family:monospace;" />
+        <view style="font-size:11px;color:var(--text-muted);margin-top:4px;">分类满分之和: <text style="color:var(--radar-green);font-family:monospace;">{{computedTotal}}</text></view>
+      </view>
+    </view>
+
+    <!-- 分类列表 -->
+    <view wx:for="{{editingSector.categories}}" wx:key="id" wx:for-index="catIdx" wx:for-item="cat" class="card" style="margin-bottom:10px;">
+      <view style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <view style="font-size:14px;font-weight:600;color:var(--text-primary);">分类 #{{catIdx + 1}}</view>
+        <view bindtap="removeCategory" data-index="{{catIdx}}" style="color:var(--alert-red);font-size:12px;padding:2px 6px;">删除</view>
+      </view>
+      <view class="form-group">
+        <view class="form-label">分类ID</view>
+        <input class="input" value="{{cat.id}}" placeholder="如 c1"
+               data-index="{{catIdx}}" data-field="id" bindinput="updateCategoryField"
+               style="background:var(--bg-primary);border-color:var(--border-color);color:var(--text-primary);font-family:monospace;" />
+      </view>
+      <view class="form-group">
+        <view class="form-label">分类名称</view>
+        <input class="input" value="{{cat.name}}" placeholder="如 保证与掌控间隔能力"
+               data-index="{{catIdx}}" data-field="name" bindinput="updateCategoryField"
+               style="background:var(--bg-primary);border-color:var(--border-color);color:var(--text-primary);" />
+      </view>
+      <view style="display:flex;gap:8px;">
+        <view class="form-group" style="flex:1;">
+          <view class="form-label">满分</view>
+          <input class="input" type="digit" value="{{cat.maxScore}}" placeholder="0"
+                 data-index="{{catIdx}}" data-field="maxScore" bindinput="updateCategoryField"
+                 style="background:var(--bg-primary);border-color:var(--border-color);color:var(--text-primary);font-family:monospace;" />
+        </view>
+        <view class="form-group" style="flex:1;">
+          <view class="form-label">最低分</view>
+          <input class="input" type="digit" value="{{cat.minScore}}" placeholder="0"
+                 data-index="{{catIdx}}" data-field="minScore" bindinput="updateCategoryField"
+                 style="background:var(--bg-primary);border-color:var(--border-color);color:var(--text-primary);font-family:monospace;" />
+        </view>
+      </view>
+      <view style="display:flex;gap:8px;flex-wrap:wrap;">
+        <view class="form-group" style="flex:1;min-width:100px;">
+          <view class="form-label">分类编码</view>
+          <input class="input" value="{{cat.code}}" placeholder="code"
+                 data-index="{{catIdx}}" data-field="code" bindinput="updateCategoryField"
+                 style="background:var(--bg-primary);border-color:var(--border-color);color:var(--text-secondary);font-size:12px;" />
+        </view>
+        <view class="form-group" style="flex:1;min-width:100px;">
+          <view class="form-label">维度</view>
+          <input class="input" value="{{cat.dimension}}" placeholder="dimension"
+                 data-index="{{catIdx}}" data-field="dimension" bindinput="updateCategoryField"
+                 style="background:var(--bg-primary);border-color:var(--border-color);color:var(--text-secondary);font-size:12px;" />
+        </view>
+        <view class="form-group" style="flex:1;min-width:100px;">
+          <view class="form-label">权重</view>
+          <input class="input" type="digit" value="{{cat.weight}}" placeholder="1"
+                 data-index="{{catIdx}}" data-field="weight" bindinput="updateCategoryField"
+                 style="background:var(--bg-primary);border-color:var(--border-color);color:var(--text-secondary);font-size:12px;" />
+        </view>
+        <view class="form-group" style="flex:1;min-width:100px;margin-bottom:0;">
+          <view class="form-label">标签</view>
+          <input class="input" value="{{cat.tags}}" placeholder="逗号分隔"
+                 data-index="{{catIdx}}" data-field="tags" bindinput="updateCategoryField"
+                 style="background:var(--bg-primary);border-color:var(--border-color);color:var(--text-secondary);font-size:12px;" />
+        </view>
+      </view>
+
+      <!-- 评分项 -->
+      <view style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bg-tertiary);">
+        <view style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">评分项 / ITEMS</view>
+        <view wx:for="{{cat.items}}" wx:key="id" wx:for-index="itemIdx" wx:for-item="item" style="margin-bottom:8px;padding:8px;background:var(--bg-primary);border-radius:6px;border:1px solid var(--bg-tertiary);">
+          <view style="display:flex;gap:6px;margin-bottom:6px;align-items:center;">
+            <input class="input" value="{{item.id}}" placeholder="项ID" style="flex:1;font-size:12px;background:var(--bg-secondary);border-color:var(--border-color);color:var(--text-primary);font-family:monospace;"
+                   data-cat-index="{{catIdx}}" data-item-index="{{itemIdx}}" data-field="id" bindinput="updateItemField" />
+            <input class="input" type="digit" value="{{item.maxScore}}" placeholder="满分" style="width:56px;font-size:12px;background:var(--bg-secondary);border-color:var(--border-color);color:var(--text-primary);font-family:monospace;"
+                   data-cat-index="{{catIdx}}" data-item-index="{{itemIdx}}" data-field="maxScore" bindinput="updateItemField" />
+            <view bindtap="removeItem" data-cat-index="{{catIdx}}" data-item-index="{{itemIdx}}" style="color:var(--alert-red);font-size:12px;padding:6px 4px;">✕</view>
+          </view>
+          <input class="input" value="{{item.name}}" placeholder="评分项名称" style="font-size:12px;margin-bottom:4px;background:var(--bg-secondary);border-color:var(--border-color);color:var(--text-primary);"
+                 data-cat-index="{{catIdx}}" data-item-index="{{itemIdx}}" data-field="name" bindinput="updateItemField" />
+          <input class="input" value="{{item.description}}" placeholder="评分标准描述（可选）" style="font-size:12px;margin-bottom:4px;background:var(--bg-secondary);border-color:var(--border-color);color:var(--text-secondary);"
+                 data-cat-index="{{catIdx}}" data-item-index="{{itemIdx}}" data-field="description" bindinput="updateItemField" />
+          <input class="input" value="{{item.deductionReason}}" placeholder="扣分原因模板（用于教员填写提示）" style="font-size:12px;margin-bottom:4px;background:var(--bg-secondary);border-color:rgba(37,99,235,0.4);color:#93c5fd;"
+                 data-cat-index="{{catIdx}}" data-item-index="{{itemIdx}}" data-field="deductionReason" bindinput="updateItemField" />
+          <view style="display:flex;gap:6px;">
+            <input class="input" value="{{item.code}}" placeholder="编码" style="flex:1;font-size:11px;background:var(--bg-secondary);border-color:var(--border-color);color:var(--text-secondary);"
+                   data-cat-index="{{catIdx}}" data-item-index="{{itemIdx}}" data-field="code" bindinput="updateItemField" />
+            <input class="input" value="{{item.dimension}}" placeholder="维度" style="flex:1;font-size:11px;background:var(--bg-secondary);border-color:var(--border-color);color:var(--text-secondary);"
+                   data-cat-index="{{catIdx}}" data-item-index="{{itemIdx}}" data-field="dimension" bindinput="updateItemField" />
+            <input class="input" value="{{item.tags}}" placeholder="标签" style="flex:1;font-size:11px;background:var(--bg-secondary);border-color:var(--border-color);color:var(--text-secondary);"
+                   data-cat-index="{{catIdx}}" data-item-index="{{itemIdx}}" data-field="tags" bindinput="updateItemField" />
+          </view>
+        </view>
+        <view bindtap="addItem" data-cat-index="{{catIdx}}" style="text-align:center;padding:8px;color:var(--accent-blue);font-size:12px;border:1px dashed var(--border-color);border-radius:6px;">+ 添加评分项</view>
+      </view>
+    </view>
+
+    <view bindtap="addCategory" class="card" style="text-align:center;padding:12px;color:var(--accent-blue);font-size:14px;border:1px dashed var(--accent-blue)40;margin-bottom:12px;">
+      + 添加分类
+    </view>
+
+    <!-- 底部提示和操作 -->
+    <view wx:if="{{errorMsg}}" style="color:var(--alert-red);font-size:12px;text-align:center;margin-bottom:10px;">{{errorMsg}}</view>
+    <view style="display:flex;gap:10px;margin-bottom:40px;">
+      <view bindtap="cancelEdit" style="flex:1;text-align:center;padding:12px 0;background:var(--bg-tertiary);border-radius:6px;color:var(--text-secondary);font-size:14px;">取消</view>
+      <view bindtap="saveSector" style="flex:1;text-align:center;padding:12px 0;background:var(--accent-blue);border-radius:6px;color:#fff;font-size:14px;font-weight:600;">保存</view>
+    </view>
+  </block>
+
+  <!-- 备份弹窗 -->
+  <view wx:if="{{showBackupModal}}" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;" bindtap="toggleBackupModal">
+    <view style="background:var(--bg-secondary);border-radius:12px;padding:24px;width:100%;max-width:400px;border:1px solid var(--border-color);" catchtap="preventClose">
+      <view style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <view style="font-size:16px;font-weight:700;color:var(--text-primary);">数据备份下载</view>
+        <view bindtap="toggleBackupModal" style="font-size:20px;color:var(--text-muted);padding:4px;">✕</view>
+      </view>
+      <view style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">请选择需要导出的数据类型：</view>
+      <view wx:for="{{[{key:'users',label:'用户信息',desc:'所有注册用户的基础信息'},{key:'scores',label:'评分记录',desc:'所有评估打分的历史记录'},{key:'sectors',label:'扇区配置',desc:'所有扇区的评估标准配置'}]}}" wx:key="key" bindtap="toggleBackupOption" data-key="{{item.key}}" style="display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:8px;background:var(--bg-primary);border:{{backupOptions[item.key] ? '1px solid var(--accent-blue)' : '1px solid var(--border-color)'}};margin-bottom:10px;">
+        <view style="width:18px;height:18px;border-radius:3px;border:2px solid {{backupOptions[item.key] ? 'var(--accent-blue)' : 'var(--text-muted)'}};display:flex;align-items:center;justify-content:center;margin-top:1px;flex-shrink:0;">
+          <view wx:if="{{backupOptions[item.key]}}" style="width:10px;height:10px;border-radius:1px;background:var(--accent-blue);"></view>
+        </view>
+        <view>
+          <view style="font-size:14px;font-weight:500;color:var(--text-primary);">{{item.label}}</view>
+          <view style="font-size:12px;color:var(--text-muted);margin-top:2px;">{{item.desc}}</view>
+        </view>
+      </view>
+      <view bindtap="downloadBackup" style="text-align:center;padding:12px 0;background:var(--accent-blue);border-radius:6px;color:#fff;font-size:15px;font-weight:600;margin-top:8px;">⬇️ 一键下载备份</view>
+    </view>
+  </view>
+
+  <!-- Toast -->
+  <view wx:if="{{toast}}" style="position:fixed;bottom:100px;left:16px;right:16px;padding:12px 16px;background:rgba(19,34,56,0.96);border:1px solid var(--border-color);border-radius:8px;z-index:1000;text-align:center;">
+    <text style="font-size:14px;color:var(--text-primary);">{{toast}}</text>
+  </view>
+</view>

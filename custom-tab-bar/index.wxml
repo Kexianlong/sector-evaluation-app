@@ -1,0 +1,23 @@
+<view class="tab-bar">
+  <view class="tab-bar-inner">
+    <view
+      wx:for="{{list}}"
+      wx:key="pagePath"
+      class="tab-bar-item {{selected === index ? 'tab-bar-item-active' : ''}} {{pressingIndex === index ? 'tab-bar-item-pressing' : ''}}"
+      data-path="{{item.pagePath}}"
+      data-index="{{index}}"
+      bindtap="switchTab"
+    >
+      <view class="tab-bar-icon-wrapper">
+        <view class="tab-bar-icon icon-{{item.iconType}} {{selected === index ? 'tab-bar-icon-active' : ''}}"></view>
+      </view>
+      <text class="tab-bar-label {{selected === index ? 'tab-bar-label-active' : ''}}">{{item.text}}</text>
+    </view>
+    <view class="tab-bar-item" bindtap="handleLogout">
+      <view class="tab-bar-icon-wrapper">
+        <view class="tab-bar-icon icon-logout"></view>
+      </view>
+      <text class="tab-bar-label">退出</text>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,152 @@
+<view class="container">
+  <!-- 页面标题 -->
+  <view class="page-header" style="margin:-12px -12px 12px -12px;">
+    <view class="page-header-title">评分历史</view>
+    <view class="page-header-subtitle">查看您的所有评分记录</view>
+  </view>
+
+  <!-- 用户信息栏 -->
+  <view class="trend-toolbar" style="margin-bottom:12px;">
+    <view class="trend-user-meta">
+      <text class="trend-user-name">{{userInfo.name || '未登录'}}</text>
+      <text wx:if="{{roleLabel}}" class="identity-badge identity-badge-role">{{roleLabel}}</text>
+      <text wx:if="{{levelLabel}}" class="identity-badge identity-badge-level">{{levelLabel}}</text>
+      <text class="page-user-note" style="margin-left:8px;font-size:11px;color:var(--text-muted);">教员评分历史</text>
+    </view>
+  </view>
+
+  <!-- 统计卡片 -->
+  <view class="stat-grid {{loading ? 'stat-grid-dim' : ''}}" aria-busy="{{loading}}">
+    <view class="stat-card">
+      <view class="stat-value" style="color:var(--accent-blue);">{{loading ? '—' : filtered.length}}</view>
+      <view class="stat-label">评分次数</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-value" style="color:var(--radar-green);">{{loading ? '—' : avgScore}}</view>
+      <view class="stat-label">平均得分率(%)</view>
+    </view>
+  </view>
+
+  <!-- 筛选条件 -->
+  <view class="card">
+    <view class="card-title">筛选条件</view>
+    <view class="instructor-history-filters">
+      <picker bindchange="onStudentFilterChange" range="{{studentPickerNames}}">
+        <view class="form-input inst-picker">
+          <text class="{{studentFilter ? 'body-text' : 'caption-text'}}">{{studentFilter || '全部学员'}}</text>
+          <text class="caption-text">▼</text>
+        </view>
+      </picker>
+
+      <picker bindchange="onSectorFilterChange" range="{{sectorPickerNames}}">
+        <view class="form-input inst-picker">
+          <text class="{{sectorFilter !== 'all' ? 'body-text' : 'caption-text'}}">{{sectorFilterName}}</text>
+          <text class="caption-text">▼</text>
+        </view>
+      </picker>
+
+      <picker mode="date" bindchange="onDateFilterChange" value="{{dateFilter}}">
+        <view class="form-input inst-picker">
+          <text class="{{dateFilter ? 'body-text' : 'caption-text'}}">{{dateFilter || '选择日期'}}</text>
+          <text class="caption-text">▼</text>
+        </view>
+      </picker>
+
+      <view bindtap="clearFilters" class="btn btn-secondary btn-sm inst-clear-btn">清除筛选</view>
+    </view>
+  </view>
+
+  <!-- 记录列表 -->
+  <view class="card">
+    <view class="card-title">评分记录 ({{loading ? '—' : filtered.length}})</view>
+
+    <!-- 错误提示 -->
+    <view wx:if="{{loadError}}" class="trend-inline-alert" style="margin-bottom:10px;">
+      <text>{{loadError}}</text>
+      <view bindtap="retryLoad" class="trend-retry-btn">重试</view>
+    </view>
+
+    <!-- 加载中 -->
+    <view wx:if="{{loading}}" class="trend-loading-state" aria-live="polite">数据加载中...</view>
+    <view wx:if="{{loading}}" class="trend-skeleton-list" aria-hidden="true">
+      <view class="trend-skeleton-row" />
+      <view class="trend-skeleton-row" />
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:if="{{!loading && filtered.length === 0 && !loadError}}" class="empty-state empty-state-compact">
+      <view class="empty-text">暂无评分记录</view>
+    </view>
+
+    <!-- 列表 -->
+    <view wx:for="{{filtered}}" wx:key="scoreId" wx:if="{{!loading}}">
+      <view class="student-history-block">
+        <view
+          class="student-history-toggle {{expandedId === item.scoreId ? 'student-history-toggle-open' : ''}}"
+          bindtap="toggleExpand"
+          data-id="{{item.scoreId}}"
+        >
+          <view class="list-item-main" style="flex:1;">
+            <view class="student-history-row-head">
+              <text style="font-size:14px;font-weight:600;color:var(--text-primary);">{{item.studentName || '未知学员'}}</text>
+              <text class="score-badge {{item.gradeClass}}">{{item.percentageStr}}%</text>
+            </view>
+            <view class="list-item-sub">
+              <text>{{item.sectorName || item.sectorId}} · {{item.date}}</text>
+            </view>
+            <view class="instructor-history-score-line">
+              {{item.totalScore}} / {{item.maxTotal || 100}} 分
+            </view>
+          </view>
+          <text class="list-item-arrow" style="margin-left:8px;">{{expandedId === item.scoreId ? '▼' : '▶'}}</text>
+        </view>
+
+        <!-- 展开详情 -->
+        <view wx:if="{{expandedId === item.scoreId}}" class="student-history-panel">
+          <view class="student-history-total-row">
+            <text class="student-history-total-label">总分</text>
+            <text class="student-history-total-value">
+              {{item.totalScore}}
+              <text class="student-history-total-max"> / {{item.maxTotal || 100}}</text>
+            </text>
+          </view>
+
+          <view wx:for="{{item.scoresArray}}" wx:for-item="cat" wx:key="categoryId">
+            <view style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
+              <text style="flex:1;padding-right:8px;font-size:12px;color:var(--text-primary);">{{cat.categoryName}}</text>
+              <view class="progress-bar" style="width:60px;">
+                <view class="progress-fill" style="width:{{cat.pct}}%;background:{{cat.barColor}};"></view>
+              </view>
+              <text class="score-badge score-pass" style="font-family:monospace;margin-left:8px;">{{cat.catScore}}</text>
+            </view>
+
+            <!-- 扣分项 -->
+            <view wx:if="{{item.deductItems && item.deductItems.length > 0}}">
+              <view
+                wx:for="{{item.deductItems}}"
+                wx:for-item="d"
+                wx:key="itemId"
+                wx:if="{{d.categoryId === cat.categoryId}}"
+                class="trend-overview-deduct-item inst-deduct-item"
+                bindtap="toggleDeductExpand"
+                data-key="{{d.deductKey}}"
+              >
+                <view style="display:flex;justify-content:space-between;align-items:center;">
+                  <view>
+                    <view class="trend-overview-deduct-name">{{d.itemName}}</view>
+                    <view class="trend-overview-deduct-meta">扣 {{d.deductVal}} 分（{{d.itemScore}}/{{d.itemMax}}）</view>
+                  </view>
+                  <text style="font-size:11px;color:var(--text-muted);margin-left:8px;">{{expandedDeductId === d.deductKey ? '▼' : '▶'}}</text>
+                </view>
+                <view wx:if="{{expandedDeductId === d.deductKey && d.reason}}" class="trend-overview-deduct-reason inst-deduct-reason">{{d.reason}}</view>
+                <view wx:if="{{expandedDeductId === d.deductKey && !d.reason}}" class="trend-overview-deduct-empty">未填写扣分原因</view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view style="height:40px;"></view>
+</view>

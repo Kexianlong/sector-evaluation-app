@@ -1,0 +1,195 @@
+<view class="container">
+  <!-- 页面头部 -->
+  <view class="page-header" style="margin:-12px -12px 12px -12px;">
+    <view class="page-header-title">{{canViewAll ? '评分总览' : '我的成绩'}}</view>
+    <view class="page-header-subtitle">{{canViewAll ? '全部学员最近一次评分' : '历史评估记录'}}</view>
+  </view>
+
+  <!-- 用户信息 -->
+  <view class="trend-toolbar" style="margin-bottom:12px;">
+    <view class="trend-user-meta">
+      <text class="trend-user-name">{{userInfo.name || '未登录'}}</text>
+      <text wx:if="{{roleLabel}}" class="identity-badge identity-badge-role">{{roleLabel}}</text>
+    </view>
+  </view>
+
+  <!-- 筛选栏 -->
+  <view class="card" style="margin-bottom:12px;padding:12px;">
+    <view class="mygrades-filters">
+      <input class="input mygrades-filter-input" type="text" placeholder="搜索学员姓名" value="{{nameFilter}}" bindinput="onNameFilterChange" />
+      <picker mode="selector" range="{{sectorFilterNames}}" value="{{sectorFilterIndex}}" bindchange="onSectorFilterChange">
+        <view class="mygrades-picker">{{sectorFilterNames[sectorFilterIndex]}}</view>
+      </picker>
+      <picker mode="selector" range="{{sortNames}}" value="{{sortIndex}}" bindchange="onSortChange">
+        <view class="mygrades-picker">{{sortNames[sortIndex]}}</view>
+      </picker>
+    </view>
+  </view>
+
+  <!-- 错误提示 -->
+  <view wx:if="{{loadError}}" class="trend-inline-alert">
+    <text>{{loadError}}</text>
+    <view bindtap="retry" class="trend-retry-btn">重试</view>
+  </view>
+
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="trend-loading-state">数据加载中...</view>
+  <view wx:if="{{loading}}" class="trend-skeleton-list" aria-hidden="true">
+    <view class="trend-skeleton-row" />
+    <view class="trend-skeleton-row" />
+    <view class="trend-skeleton-row" />
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:if="{{!loading && filteredScores.length === 0 && !loadError}}" class="empty-state">
+    <view class="empty-text">暂无评分记录</view>
+  </view>
+
+  <!-- 学员评分列表 -->
+  <view wx:for="{{filteredScores}}" wx:key="id" class="trend-student-overview fade-in">
+    <!-- 头部：排名 + 学员信息 + 分数 -->
+    <view class="trend-student-overview-head">
+      <view style="display:flex;align-items:center;gap:10px;">
+        <view class="analysis-rank-badge" style="{{index < 3 ? (index===0?'background:linear-gradient(135deg,#ffd700,#f0a500);color:#1a1a1a;':index===1?'background:linear-gradient(135deg,#c0c0c0,#9e9e9e);color:#1a1a1a;':'background:linear-gradient(135deg,#cd7f32,#a0522d);color:#fff;'):''}}">
+          {{index + 1}}
+        </view>
+        <view>
+          <view wx:if="{{canViewAll}}" class="trend-overview-name" style="text-decoration:underline dotted;" bindtap="openStudentHistory" data-student-id="{{item.studentId}}" data-student-name="{{item.studentName}}">
+            {{item.studentName}}
+          </view>
+          <view wx:else class="trend-overview-name">
+            {{item.studentName}}
+          </view>
+          <view class="trend-overview-meta">{{item.sectorName}} · {{item.date}} · {{item.instructorName}}</view>
+        </view>
+      </view>
+      <view class="trend-overview-score-wrap">
+        <text class="score-badge {{item._gradeClass}}">{{item._grade}}</text>
+        <view class="trend-grade-text">{{item.total}}/{{item.maxTotal}}</view>
+      </view>
+    </view>
+
+    <!-- 主体：分类得分 + 扣分项 -->
+    <view class="trend-student-overview-body">
+      <!-- 分类得分条 -->
+      <view class="mygrades-score-section">
+        <view wx:for="{{item._scorePairs}}" wx:for-item="sp" wx:key="name" class="mygrades-score-bar">
+          <text class="mygrades-score-bar-name">{{sp.name}}</text>
+          <view class="progress-bar" style="flex:1;margin:0 8px;">
+            <view class="progress-fill" style="width:{{sp.maxScore > 0 ? Math.round((sp.score/sp.maxScore)*100) : 0}}%;background:{{sp.score*100/sp.maxScore>=90?'#00d26a':sp.score*100/sp.maxScore>=75?'#ffaa00':'#60a5fa'}};" />
+          </view>
+          <text class="mygrades-score-bar-val">{{sp.score}}</text>
+        </view>
+      </view>
+
+      <!-- 扣分项 -->
+      <view class="trend-overview-deducts" wx:if="{{item._deductItems.length > 0}}">
+        <view class="trend-overview-deduct-title">扣分项</view>
+        <view wx:for="{{item._deductItems}}" wx:for-item="d" wx:key="itemId" class="trend-overview-deduct-item">
+          <view style="display:flex;justify-content:space-between;align-items:center;">
+            <view>
+              <view class="trend-overview-deduct-name">{{d.itemName}}</view>
+              <view class="trend-overview-deduct-meta">扣 {{d.deductVal}} 分（{{d.score}}/{{d.maxScore}}）</view>
+            </view>
+          </view>
+          <view wx:if="{{d.reason}}" class="trend-overview-deduct-reason">{{d.reason}}</view>
+          <view wx:if="{{!d.reason && !d.isFallback}}" class="trend-overview-deduct-empty">未填写扣分原因</view>
+        </view>
+      </view>
+      <view wx:if="{{item._deductItems.length === 0}}" class="trend-overview-deducts">
+        <view class="trend-overview-deduct-title">扣分项</view>
+        <view class="trend-overview-deduct-empty">无扣分项</view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 学员历史评分详情弹窗 -->
+<view wx:if="{{showHistoryPopup}}" class="popup-mask" bindtap="closeHistoryPopup">
+  <view class="popup-content" catchtap="preventClose">
+    <view class="popup-header">
+      <view class="popup-title">{{detailStudent.studentName}} 的历史评分</view>
+      <view class="radar-popup-close" bindtap="closeHistoryPopup">&#x2715;</view>
+    </view>
+
+    <!-- 统计卡片 -->
+    <view class="stat-grid {{detailLoading ? 'stat-grid-dim' : ''}}">
+      <view class="stat-card">
+        <view class="stat-value">{{detailLoading ? '—' : historyStats.count}}</view>
+        <view class="stat-label">评估次数</view>
+      </view>
+      <view class="stat-card">
+        <view class="stat-value">{{detailLoading ? '—' : historyStats.avgScore}}</view>
+        <view class="stat-label">平均分</view>
+      </view>
+      <view class="stat-card">
+        <view class="stat-value" style="font-size:14px;font-weight:600;color:var(--text-primary);">{{detailLoading ? '—' : historyStats.bestSector}}</view>
+        <view class="stat-label">最佳扇区</view>
+      </view>
+      <view class="stat-card">
+        <view class="stat-value" style="font-size:14px;font-weight:600;color:var(--amber);">{{detailLoading ? '—' : historyStats.bestGrade}}</view>
+        <view class="stat-label">最高等级</view>
+      </view>
+    </view>
+
+    <!-- 历史记录列表 -->
+    <view class="card" style="margin-bottom:0;">
+      <view class="card-title">评估历史</view>
+      <view wx:if="{{detailLoading}}" class="trend-loading-state">数据加载中...</view>
+      <view wx:if="{{!detailLoading && studentHistory.length === 0}}" class="empty-state empty-state-compact">
+        <view class="empty-text">暂无评估记录</view>
+      </view>
+
+      <view wx:for="{{studentHistory}}" wx:key="id" class="student-history-block">
+        <view class="student-history-toggle {{detailExpandedId === item.id ? 'student-history-toggle-open' : ''}}" bindtap="toggleDetailExpand" data-id="{{item.id}}">
+          <view class="student-history-row-head">
+            <view>
+              <view class="list-item-title">{{item.sectorName}}</view>
+              <view class="list-item-sub">{{item.date}}</view>
+            </view>
+            <text class="score-badge {{item._gradeClass}}">{{item._grade}}</text>
+          </view>
+          <text class="list-item-arrow">{{detailExpandedId === item.id ? '&#x25BC;' : '&#x25B6;'}}</text>
+        </view>
+
+        <view wx:if="{{detailExpandedId === item.id}}" class="student-history-panel">
+          <view class="student-history-total-row">
+            <text class="student-history-total-label">总分</text>
+            <text class="student-history-total-value">{{item.total}}<text class="student-history-total-max"> / {{item.maxTotal}}</text></text>
+          </view>
+
+          <!-- 雷达图 -->
+          <canvas type="2d" id="historyRadarCanvas" style="width:100%;height:220px;margin-bottom:12px;" />
+
+          <!-- 分类得分 -->
+          <view wx:for="{{item._scorePairs}}" wx:for-item="sp" wx:key="name" class="radar-score-row">
+            <view class="radar-score-left">
+              <view class="radar-score-name">{{sp.name}}</view>
+            </view>
+            <view class="radar-score-right">
+              <view class="progress-bar radar-score-progress">
+                <view class="progress-fill" style="width:{{sp.maxScore > 0 ? Math.round((sp.score/sp.maxScore)*100) : 0}}%;background:{{sp.score*100/sp.maxScore>=90?'#00d26a':sp.score*100/sp.maxScore>=75?'#ffaa00':'#60a5fa'}};" />
+              </view>
+              <text class="score-badge radar-score-value-badge score-pass">{{sp.score}}</text>
+            </view>
+          </view>
+
+          <!-- 扣分项 -->
+          <view wx:if="{{item._deductItems.length > 0}}" style="margin-top:8px;">
+            <view wx:for="{{item._deductItems}}" wx:for-item="d" wx:key="itemId" class="trend-overview-deduct-item mygrades-deduct-item" bindtap="toggleDetailDeductExpand" data-key="{{item.id}}_{{d.itemId}}">
+              <view style="display:flex;justify-content:space-between;align-items:center;">
+                <view>
+                  <view class="trend-overview-deduct-name">{{d.itemName}}</view>
+                  <view class="trend-overview-deduct-meta">扣 {{d.deductVal}} 分（{{d.score}}/{{d.maxScore}}）</view>
+                </view>
+                <text style="font-size:11px;color:var(--text-muted);">{{detailExpandedDeductId === item.id + '_' + d.itemId ? '&#x25BC;' : '&#x25B6;'}}</text>
+              </view>
+              <view wx:if="{{detailExpandedDeductId === item.id + '_' + d.itemId && d.reason}}" class="trend-overview-deduct-reason mygrades-deduct-reason">{{d.reason}}</view>
+              <view wx:if="{{detailExpandedDeductId === item.id + '_' + d.itemId && !d.reason}}" class="trend-overview-deduct-empty">未填写扣分原因</view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

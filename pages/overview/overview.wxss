@@ -1,0 +1,477 @@
+/* pages/overview/overview.wxss */
+.manager-overview-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.manager-logout-btn {
+  margin-top: 20px;
+  padding: 12px;
+  text-align: center;
+  background: var(--bg-tertiary, var(--bg-tertiary, #1a2d45));
+  border: 1px solid var(--border-color, var(--border-color, #1e3a5f));
+  border-radius: 8px;
+  color: var(--text-secondary, var(--text-secondary, #8a9bb0));
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.manager-logout-btn:active {
+  background: var(--bg-secondary, var(--bg-secondary, #132238));
+  color: var(--text-primary, var(--text-primary, #e8ecf1));
+}
+
+.hover-opacity:active {
+  opacity: 0.8;
+  transform: scale(0.98);
+}
+
+/* 卡片溢出保护 */
+.card {
+  overflow: hidden;
+}
+
+/* 管理入口文字处理 */
+.card view text {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* 最近评估记录文字安全处理 */
+.list-item text {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* ==================== 统计条 ==================== */
+.manager-stat-strip {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.manager-stat-box {
+  flex: 1;
+  text-align: center;
+  padding: 16px 8px;
+  background: linear-gradient(135deg, var(--bg-secondary, var(--bg-secondary, #132238)), var(--bg-primary, var(--bg-primary, #0a1628)));
+  border-radius: 8px;
+  border: 1px solid var(--border-color, var(--border-color, #1e3a5f));
+}
+
+.manager-stat-box--green {
+  border-top: 2px solid var(--radar-green, var(--radar-green, #00d26a));
+}
+
+.manager-stat-box--amber {
+  border-top: 2px solid var(--amber, var(--amber, #ffaa00));
+}
+
+.manager-stat-box--blue {
+  border-top: 2px solid var(--accent-blue, var(--accent-blue, #2563eb));
+}
+
+.manager-stat-box-label {
+  font-size: 11px;
+  color: var(--text-secondary, var(--text-secondary, #8a9bb0));
+  letter-spacing: 0.5px;
+}
+
+.manager-stat-box-value {
+  font-size: 28px;
+  font-weight: 800;
+  margin-top: 4px;
+  font-family: 'SF Mono', Monaco, monospace;
+}
+
+.manager-stat-box--green .manager-stat-box-value {
+  color: var(--radar-green, var(--radar-green, #00d26a));
+}
+
+.manager-stat-box--amber .manager-stat-box-value {
+  color: var(--amber, var(--amber, #ffaa00));
+}
+
+.manager-stat-box--blue .manager-stat-box-value {
+  color: var(--accent-blue, var(--accent-blue, #2563eb));
+}
+
+/* ==================== 管理入口网格 ==================== */
+.manager-admin-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.manager-admin-tile {
+  flex: 1;
+  min-width: 80px;
+  background: var(--bg-primary, var(--bg-primary, #0a1628));
+  border-radius: 8px;
+  padding: 16px 8px;
+  text-align: center;
+  border: 1px solid var(--border-color, var(--border-color, #1e3a5f));
+  color: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.manager-admin-tile:active {
+  border-color: var(--accent-blue, var(--accent-blue, #2563eb));
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.2);
+}
+
+.manager-admin-tile-icon {
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.manager-admin-tile-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, var(--text-primary, #e8ecf1));
+}
+
+.manager-admin-tile-sub {
+  font-size: 10px;
+  color: var(--text-muted, var(--text-muted, #4a5d75));
+  margin-top: 2px;
+}
+
+/* ==================== 最近评估记录 ==================== */
+.manager-recent-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.manager-recent-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.manager-recent-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color, var(--border-color, #1e3a5f));
+  flex-shrink: 0;
+}
+
+.manager-recent-avatar--high {
+  background: var(--bg-green-light, rgba(0, 210, 106, 0.15));
+  border-color: var(--border-green-light, rgba(0, 210, 106, 0.35));
+}
+
+.manager-recent-avatar--mid {
+  background: var(--bg-amber-light, rgba(255, 170, 0, 0.15));
+  border-color: var(--border-amber-light, rgba(255, 170, 0, 0.35));
+}
+
+.manager-recent-avatar--low {
+  background: var(--bg-red-light, rgba(255, 77, 79, 0.15));
+  border-color: var(--border-red-light, rgba(255, 77, 79, 0.35));
+}
+
+.manager-recent-avatar-score {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'SF Mono', Monaco, monospace;
+}
+
+.manager-recent-row--high .manager-recent-avatar-score {
+  color: var(--radar-green, var(--radar-green, #00d26a));
+}
+
+.manager-recent-row--mid .manager-recent-avatar-score {
+  color: var(--amber, var(--amber, #ffaa00));
+}
+
+.manager-recent-row--low .manager-recent-avatar-score {
+  color: var(--alert-red, var(--alert-red, #ff4d4f));
+}
+
+.manager-recent-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, var(--text-primary, #e8ecf1));
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.manager-recent-meta {
+  font-size: 11px;
+  color: var(--text-muted, var(--text-muted, #4a5d75));
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.manager-recent-right {
+  text-align: right;
+  flex-shrink: 0;
+  padding-left: 8px;
+}
+
+.manager-recent-grade {
+  font-size: 12px;
+  color: var(--text-secondary, var(--text-secondary, #8a9bb0));
+}
+
+.manager-recent-instructor {
+  font-size: 10px;
+  color: var(--text-muted, #4a5d75);
+  margin-top: 2px;
+  font-family: 'SF Mono', Monaco, monospace;
+}
+
+/* ==================== 评估记录筛选 ==================== */
+.manager-record-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.manager-record-filters picker {
+  flex: 1;
+  min-width: 100px;
+}
+
+.manager-record-filter-input {
+  width: 100%;
+  height: 40px;
+  font-size: 13px;
+  padding: 0 12px;
+  border: 1px solid var(--border-color, #1e3a5f);
+  border-radius: 6px;
+  background: var(--bg-primary, #0a1628);
+  color: var(--text-primary, #e8ecf1);
+  display: flex;
+  align-items: center;
+}
+
+.manager-record-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.manager-record-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary, #8a9bb0);
+  padding: 6px 0;
+  min-height: 36px;
+}
+
+.manager-record-checkbox {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 2px solid var(--text-muted, #4a5d75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.manager-record-checkbox.checked {
+  border-color: var(--accent-blue, #2563eb);
+  background: var(--accent-blue, #2563eb);
+}
+
+.manager-record-checkbox-inner {
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 2px;
+}
+
+.manager-delete-btn {
+  font-size: 16px;
+  padding: 6px 8px;
+  opacity: 0.6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 6px;
+}
+
+.manager-delete-btn:active {
+  opacity: 1;
+  background: var(--bg-tertiary, #1a2d45);
+}
+
+.manager-delete-confirm {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+/* ==================== 登出按钮 ==================== */
+.manager-logout-btn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px 16px;
+  text-align: center;
+  color: var(--alert-red, #ff4d4f);
+  font-size: 13px;
+  border: 1px solid rgba(255, 77, 79, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 77, 79, 0.05);
+}
+
+.manager-logout-btn:active {
+  background: rgba(255, 77, 79, 0.1);
+}
+
+/* ==================== 已放单标签 ==================== */
+.overview-released-tag {
+  display: inline-block;
+  font-size: 10px;
+  color: #f87171;
+  background: rgba(255, 77, 79, 0.1);
+  border: 1px solid rgba(255, 77, 79, 0.25);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+  line-height: 1.4;
+}
+
+.manager-recent-name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.overview-deduct-item {
+  border-left: 3px solid #ef4444 !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+  margin-top: 8px;
+  margin-bottom: 6px;
+  transition: background 0.2s ease;
+}
+
+.overview-deduct-item:active {
+  background: rgba(239, 68, 68, 0.15) !important;
+}
+
+.overview-deduct-reason {
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #f87171;
+  line-height: 1.5;
+}
+
+/* ==================== 小屏字体降级 ==================== */
+
+/* ==================== 到期提醒样式 ==================== */
+.reminder-summary-card {
+  background: rgba(255, 77, 79, 0.04);
+  border-color: rgba(255, 77, 79, 0.18);
+}
+
+.reminder-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.reminder-item {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--bg-tertiary, #1a2d45);
+}
+
+.reminder-item:last-child {
+  border-bottom: none;
+}
+
+.reminder-item-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.reminder-item-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.expiry-tag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 3px;
+  line-height: 1.6;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.expiry-warning {
+  color: #ffaa00;
+  background: rgba(255, 170, 0, 0.1);
+  border: 1px solid rgba(255, 170, 0, 0.3);
+}
+
+.expiry-expired {
+  color: #ff4d4f;
+  background: rgba(255, 77, 79, 0.1);
+  border: 1px solid rgba(255, 77, 79, 0.3);
+}
+
+.expiry-normal {
+  color: #00d26a;
+  background: rgba(0, 210, 106, 0.1);
+  border: 1px solid rgba(0, 210, 106, 0.3);
+}
+@media (max-width: 375px) {
+  .container .card view text[style*="font-size:28px"] {
+    font-size: 22px !important;
+  }
+  .container .card view text[style*="font-size:24px"] {
+    font-size: 20px !important;
+  }
+  .manager-stat-box-value {
+    font-size: 22px !important;
+  }
+  .manager-admin-tile {
+    padding: 12px 6px;
+  }
+  .manager-admin-tile-icon {
+    font-size: 20px;
+  }
+  .manager-admin-tile-title {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 320px) {
+  .manager-stat-box {
+    padding: 12px 4px;
+  }
+  .manager-stat-box-value {
+    font-size: 20px !important;
+  }
+  .manager-admin-grid {
+    gap: 8px;
+  }
+}

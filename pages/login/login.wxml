@@ -1,0 +1,86 @@
+<view class="login-page">
+  <!-- 顶部航空标识区 -->
+  <view class="login-header">
+    <image class="login-logo-img" src="/images/logo.png" mode="aspectFit" />
+    <view class="login-title">扇区能力评估系统</view>
+    <view class="login-en-title">SECTOR COMPETENCY ASSESSMENT</view>
+    <view class="login-title-divider"></view>
+    <view class="login-subtitle">空中交通管制员 · 能力考核与评估平台</view>
+  </view>
+
+  <view class="login-form">
+    <!-- 账号 -->
+    <view class="login-form-group">
+      <view class="login-form-label">
+        <text class="status-dot blue"></text>
+        账号
+      </view>
+      <input class="login-input" value="{{username}}" bindinput="onInputUsername" placeholder="请输入用户名" placeholder-class="login-placeholder" disabled="{{showPasswordModal}}" />
+    </view>
+
+    <!-- 密码 -->
+    <view class="login-form-group">
+      <view class="login-form-label">
+        <text class="status-dot blue"></text>
+        密码
+      </view>
+      <input class="login-input" value="{{password}}" bindinput="onInputPassword" password placeholder="请输入密码" placeholder-class="login-placeholder" disabled="{{showPasswordModal}}" />
+    </view>
+
+    <!-- 岗位提示 -->
+    <view class="login-role-hint">
+      岗位由系统账号自动识别，无需手动选择角色。
+    </view>
+
+    <!-- 登录按钮 -->
+    <view class="login-btn login-btn-primary" bindtap="handleLogin" disabled="{{loading || showPasswordModal}}">
+      {{loading ? '登录中...' : '进入系统'}}
+    </view>
+
+    <view wx:if="{{error}}" class="login-error-msg">{{error}}</view>
+  </view>
+
+  <!-- 底部版权 -->
+  <view class="login-footer">
+    <text>Air Traffic Control Training System v1.0</text>
+  </view>
+
+  <!-- 修改密码提醒弹窗 -->
+  <view wx:if="{{showPasswordModal}}" class="modal-mask">
+    <view class="modal-content">
+      <!-- 提醒页面 -->
+      <block wx:if="{{!showPasswordForm}}">
+        <view style="font-size: 32px; text-align: center; margin-bottom: 12px;">🔒</view>
+        <view class="modal-title">请修改默认密码</view>
+        <view class="modal-desc">您当前使用的是系统默认密码，为保障账号安全，建议立即修改密码。</view>
+        <view class="modal-actions">
+          <view class="login-btn login-btn-primary modal-btn" bindtap="handleShowPasswordForm">立即修改</view>
+          <view class="login-btn login-btn-secondary modal-btn" bindtap="handleCancelPasswordChange">稍后提醒</view>
+        </view>
+      </block>
+
+      <!-- 修改密码表单 -->
+      <block wx:if="{{showPasswordForm}}">
+        <view class="modal-title">修改密码</view>
+        <view class="login-form-group">
+          <view class="login-form-label">旧密码</view>
+          <input class="login-input" type="password" value="{{oldPassword}}" bindinput="onInputOldPassword" placeholder="请输入旧密码" placeholder-class="login-placeholder" />
+        </view>
+        <view class="login-form-group">
+          <view class="login-form-label">新密码</view>
+          <input class="login-input" type="password" value="{{newPassword}}" bindinput="onInputNewPassword" placeholder="新密码至少6位" placeholder-class="login-placeholder" />
+        </view>
+        <view class="login-form-group">
+          <view class="login-form-label">确认新密码</view>
+          <input class="login-input" type="password" value="{{confirmPassword}}" bindinput="onInputConfirmPassword" placeholder="再次输入新密码" placeholder-class="login-placeholder" />
+        </view>
+        <view wx:if="{{passwordError}}" class="login-error-msg">{{passwordError}}</view>
+        <view wx:if="{{passwordSuccess}}" style="color: var(--radar-green); font-size: 13px; text-align: center; margin-bottom: 12px;">{{passwordSuccess}}</view>
+        <view class="modal-actions">
+          <view class="login-btn login-btn-primary modal-btn" bindtap="handleChangePassword">确认修改</view>
+          <view class="login-btn login-btn-secondary modal-btn" bindtap="handleCancelPasswordChange">取消</view>
+        </view>
+      </block>
+    </view>
+  </view>
+</view>

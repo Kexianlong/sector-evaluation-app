@@ -1,0 +1,315 @@
+<view class="container">
+  <!-- 用户信息栏 -->
+  <view class="trend-toolbar manager-overview-toolbar" style="margin-bottom:12px;">
+    <view class="trend-user-meta">
+      <text class="trend-user-name">{{userInfo.name || '未登录'}}</text>
+      <text wx:if="{{roleLabel}}" class="identity-badge identity-badge-role">{{roleLabel}}</text>
+      <text wx:if="{{levelLabel}}" class="identity-badge identity-badge-level">{{levelLabel}}</text>
+    </view>
+  </view>
+
+  <!-- 筛选条件 -->
+  <view class="card">
+    <view class="card-title">数据分析工作台</view>
+
+    <view class="manager-analysis-grid">
+      <view class="manager-analysis-field">
+        <view class="form-label">扇区</view>
+        <picker bindchange="onSectorChange" range="{{sectorNames}}" value="{{sectorIndex}}">
+          <view class="form-input">{{sectorNames[sectorIndex] || '请选择扇区'}}</view>
+        </picker>
+      </view>
+
+      <view class="manager-analysis-field">
+        <view class="form-label">阶段筛选</view>
+        <picker bindchange="onPhaseChange" range="{{phaseOptions}}" value="{{phaseIndex}}">
+          <view class="form-input">{{phaseOptions[phaseIndex] || '全部阶段'}}</view>
+        </picker>
+      </view>
+
+      <view class="manager-analysis-field">
+        <view class="form-label">开始日期</view>
+        <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange" start="2024-01-01" end="2026-12-31">
+          <view class="form-input">{{startDate || '不限'}}</view>
+        </picker>
+      </view>
+
+      <view class="manager-analysis-field">
+        <view class="form-label">结束日期</view>
+        <picker mode="date" value="{{endDate}}" bindchange="onEndDateChange" start="2024-01-01" end="2026-12-31">
+          <view class="form-input">{{endDate || '不限'}}</view>
+        </picker>
+      </view>
+    </view>
+
+    <!-- 学员多选 -->
+    <view style="margin-top:16px;">
+      <view class="form-label">学员多选</view>
+      <view class="analysis-chip-row">
+        <view wx:for="{{selectedStudentNames}}" wx:key="*this" class="analysis-chip">
+          <text>{{item}}</text>
+          <text class="analysis-chip-remove" data-index="{{index}}" bindtap="removeStudent">✕</text>
+        </view>
+        <view class="analysis-trigger" bindtap="openStudentPicker">+ 选择学员</view>
+      </view>
+    </view>
+
+    <!-- 评分指标多选 -->
+    <view style="margin-top:16px;">
+      <view class="form-label">评分指标多选</view>
+      <view class="analysis-chip-row">
+        <view wx:for="{{selectedIndicatorNames}}" wx:key="*this" class="analysis-chip">
+          <text>{{item}}</text>
+          <text class="analysis-chip-remove" data-index="{{index}}" bindtap="removeIndicator">✕</text>
+        </view>
+        <view class="analysis-trigger" bindtap="openIndicatorPicker">+ 选择指标</view>
+      </view>
+      <view class="analysis-tip">未选择指标时默认统计当前扇区全部维度</view>
+    </view>
+
+    <!-- 图表类型与对比维度切换 -->
+    <view class="trend-viz-controls">
+      <view class="trend-viz-group">
+        <view class="trend-viz-btn {{chartType === 'bar' ? 'active' : ''}}" bindtap="switchChartType" data-type="bar">柱形图</view>
+        <view class="trend-viz-btn {{chartType === 'pie' ? 'active' : ''}}" bindtap="switchChartType" data-type="pie">饼形图</view>
+        <view class="trend-viz-btn {{chartType === 'line' ? 'active' : ''}}" bindtap="switchChartType" data-type="line">折线图</view>
+        <view class="trend-viz-btn {{chartType === 'radar' ? 'active' : ''}}" bindtap="switchChartType" data-type="radar">雷达图</view>
+      </view>
+      <view class="trend-viz-group">
+        <view class="trend-viz-btn {{compareView === 'student' ? 'active' : ''}}" bindtap="switchCompareView" data-view="student">按学员对比</view>
+        <view class="trend-viz-btn {{compareView === 'indicator' ? 'active' : ''}}" bindtap="switchCompareView" data-view="indicator">按指标对比</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 分析图表 -->
+  <view class="card trend-visual-card">
+    <view class="card-title">分析图表</view>
+
+    <view wx:if="{{loadError}}" class="trend-inline-alert">
+      <text>{{loadError}}</text>
+      <view class="btn trend-retry-btn" bindtap="onRetryLoad">重试</view>
+    </view>
+
+    <view wx:if="{{loading}}" class="trend-loading-state">数据加载中...</view>
+    <view wx:if="{{loading}}" class="trend-skeleton-list">
+      <view class="trend-skeleton-row" />
+      <view class="trend-skeleton-row" />
+      <view class="trend-skeleton-row" />
+    </view>
+
+    <view wx:if="{{!loading && (analysisRows.length || indicatorOverview.length || lineSeries.length)}}" class="trend-viz-note">
+      {{compareView === 'student' ? '当前视图展示学员综合均值' : '当前视图展示指标平均得分率'}}，单位为百分比。
+    </view>
+
+    <view wx:if="{{!loading && (analysisRows.length || indicatorOverview.length || lineSeries.length)}}" class="canvas-wrap" style="position:relative;width:100%;">
+      <canvas type="2d" id="analysisChartCanvas" style="width:100%;height:{{canvasHeight}}px;" bindtouchstart="onCanvasTouch"></canvas>
+      <view wx:if="{{tooltip.show}}" class="canvas-tooltip" style="left:{{tooltip.x}}px;top:{{tooltip.y}}px;">
+        <text>{{tooltip.text}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{!loading && legendItems.length > 0}}" class="trend-chart-legend">
+      <view wx:for="{{legendItems}}" wx:key="name" class="trend-legend-item">
+        <view class="trend-legend-dot" style="background:{{item.color}};"></view>
+        <text>{{item.name}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{!loading && !analysisRows.length && !indicatorOverview.length && !lineSeries.length}}" class="empty-state" style="padding:32px 0;">
+      <view class="empty-text">暂无可分析数据</view>
+    </view>
+  </view>
+
+  <!-- 总体统计摘要 -->
+  <view wx:if="{{!loading && summaryStats.studentCount > 0}}" class="card summary-stats-card">
+    <view class="card-title">总体概览</view>
+    <view class="summary-stats-grid">
+      <view class="summary-stat-item">
+        <text class="summary-stat-value">{{summaryStats.studentCount}}</text>
+        <text class="summary-stat-label">对比学员</text>
+      </view>
+      <view class="summary-stat-item">
+        <text class="summary-stat-value">{{summaryStats.recordCount}}</text>
+        <text class="summary-stat-label">评价次数</text>
+      </view>
+      <view class="summary-stat-item">
+        <text class="summary-stat-value">{{summaryStats.groupAvg}}%</text>
+        <text class="summary-stat-label">群体均值</text>
+      </view>
+      <view class="summary-stat-item">
+        <text class="summary-stat-value summary-stat-high">{{summaryStats.highest}}%</text>
+        <text class="summary-stat-label">最高得分</text>
+      </view>
+      <view class="summary-stat-item">
+        <text class="summary-stat-value summary-stat-low">{{summaryStats.lowest}}%</text>
+        <text class="summary-stat-label">最低得分</text>
+      </view>
+      <view class="summary-stat-item">
+        <text class="summary-stat-value">{{summaryStats.range}}%</text>
+        <text class="summary-stat-label">极差</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 分析结果明细 -->
+  <view class="card">
+    <view class="card-title">分析结果明细</view>
+
+    <!-- 加载骨架屏 -->
+    <view wx:if="{{loading}}" class="trend-skeleton-list" aria-hidden="true">
+      <view class="trend-skeleton-row" />
+      <view class="trend-skeleton-row" />
+      <view class="trend-skeleton-row" />
+    </view>
+
+    <!-- 按学员对比视图 -->
+    <view wx:if="{{!loading && compareView === 'student'}}" wx:for="{{analysisRows}}" wx:key="studentId" class="analysis-detail-item">
+      <view class="analysis-detail-header">
+        <view class="analysis-detail-info">
+          <view class="analysis-detail-name-row">
+            <view class="analysis-rank-badge analysis-rank-{{item.rank <= 3 ? item.rank : 'default'}}">{{item.rank}}</view>
+            <text class="list-item-title">{{item.studentName}}</text>
+            <view wx:if="{{item.trendDir === 'up'}}" class="analysis-trend-icon trend-up">↑</view>
+            <view wx:elif="{{item.trendDir === 'down'}}" class="analysis-trend-icon trend-down">↓</view>
+            <view wx:else class="analysis-trend-icon trend-stable">→</view>
+          </view>
+          <view class="list-item-sub">{{item.studentLevel}} · 样本 {{item.rows.length}} 次</view>
+        </view>
+        <view class="analysis-detail-score">
+          <text class="score-badge {{item.overallClass}}">{{item.overallStr}}%</text>
+          <view class="analysis-gap-row">
+            <text class="analysis-detail-grade">{{item.gradeText}}</text>
+            <text class="analysis-gap {{item.gapFromAvgClass}}">{{item.gapFromAvgStr}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 优劣势指标 -->
+      <view wx:if="{{item.strengths.length || item.weaknesses.length}}" class="analysis-sw-section">
+        <view class="analysis-sw-row" wx:if="{{item.strengths.length}}">
+          <text class="analysis-sw-label sw-strength">优势</text>
+          <view class="analysis-sw-tags">
+            <text wx:for="{{item.strengths}}" wx:key="name" wx:for-item="sw" class="analysis-sw-tag tag-strength">{{sw.name}} {{sw.pct}}%</text>
+          </view>
+        </view>
+        <view class="analysis-sw-row" wx:if="{{item.weaknesses.length}}">
+          <text class="analysis-sw-label sw-weakness">待提升</text>
+          <view class="analysis-sw-tags">
+            <text wx:for="{{item.weaknesses}}" wx:key="name" wx:for-item="sw" class="analysis-sw-tag tag-weakness">{{sw.name}} {{sw.pct}}%</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 指标明细 -->
+      <view class="analysis-detail-indicators">
+        <view wx:for="{{item.indicatorAvg}}" wx:key="id" wx:for-item="ind" class="analysis-indicator-row">
+          <text class="analysis-indicator-name">{{ind.name}}</text>
+          <view class="analysis-indicator-bar-wrap">
+            <view class="analysis-indicator-bar" style="width:{{ind.avgPct > 100 ? 100 : ind.avgPct}}%;background:{{ind.avgPct >= 90 ? '#00d26a' : (ind.avgPct >= 75 ? '#ffaa00' : '#60a5fa')}};" />
+          </view>
+          <text class="analysis-indicator-value" style="color:{{ind.avgPct >= 90 ? '#00d26a' : (ind.avgPct >= 75 ? '#ffaa00' : '#60a5fa')}};">{{ind.avgPctStr}}%</text>
+          <text class="analysis-indicator-gap {{ind.gapClass}}">{{ind.gapStr}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 按指标对比视图 -->
+    <view wx:if="{{!loading && compareView === 'indicator'}}" wx:for="{{indicatorOverview}}" wx:key="id" class="analysis-detail-item">
+      <view class="analysis-detail-header">
+        <view class="analysis-detail-info">
+          <view class="list-item-title">{{item.name}}</view>
+          <view class="list-item-sub">满分 {{item.maxScore}} 分 · {{item.totalStudentCount}} 位学员</view>
+        </view>
+        <view class="analysis-detail-score">
+          <text class="score-badge {{item.avg >= 95 ? 'score-excellent' : (item.avg >= 90 ? 'score-good' : (item.avg >= 85 ? 'score-pass' : 'score-fail'))}}">{{item.avgStr}}%</text>
+          <text class="analysis-detail-grade">{{item.avg >= 95 ? '优秀' : (item.avg >= 90 ? '良好' : (item.avg >= 85 ? '合格' : '不合格'))}}</text>
+        </view>
+      </view>
+
+      <!-- 指标统计摘要 -->
+      <view class="indicator-stats-row">
+        <view class="indicator-stat">
+          <text class="indicator-stat-label">最低</text>
+          <text class="indicator-stat-value stat-low">{{item.minVal}}%</text>
+        </view>
+        <view class="indicator-stat">
+          <text class="indicator-stat-label">中位数</text>
+          <text class="indicator-stat-value">{{item.medianVal}}%</text>
+        </view>
+        <view class="indicator-stat">
+          <text class="indicator-stat-label">最高</text>
+          <text class="indicator-stat-value stat-high">{{item.maxVal}}%</text>
+        </view>
+        <view class="indicator-stat">
+          <text class="indicator-stat-label">达标人数</text>
+          <text class="indicator-stat-value">{{item.aboveAvgCount}}/{{item.totalStudentCount}}</text>
+        </view>
+      </view>
+
+      <!-- 每位学员的得分和差距 -->
+      <view class="analysis-detail-indicators">
+        <view wx:for="{{item.studentGaps}}" wx:key="studentId" wx:for-item="sg" class="analysis-indicator-row">
+          <text class="analysis-indicator-name">{{sg.studentName}}</text>
+          <view class="analysis-indicator-bar-wrap">
+            <view class="analysis-indicator-bar" style="width:{{sg.val > 100 ? 100 : sg.val}}%;background:{{sg.val >= 90 ? '#00d26a' : (sg.val >= 75 ? '#ffaa00' : '#60a5fa')}};" />
+          </view>
+          <text class="analysis-indicator-value" style="color:{{sg.val >= 90 ? '#00d26a' : (sg.val >= 75 ? '#ffaa00' : '#60a5fa')}};">{{sg.valStr}}%</text>
+          <text class="analysis-indicator-gap {{sg.gapClass}}">{{sg.gapStr}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{!loading && !analysisRows.length}}" class="empty-state empty-state-compact">
+      <view class="empty-text">暂无分析结果</view>
+    </view>
+  </view>
+
+  <!-- 学员选择弹窗 -->
+  <view wx:if="{{showStudentPicker}}" class="modal-overlay" bindtap="closeStudentPicker">
+    <view class="modal-content" catchtap="preventClose">
+      <view class="modal-header">
+        <text class="modal-title">选择学员</text>
+        <text class="modal-close" bindtap="closeStudentPicker">关闭</text>
+      </view>
+      <scroll-view scroll-y class="modal-body">
+        <view wx:for="{{pickerStudents}}" wx:key="userId" class="modal-item" data-id="{{item.userId}}" bindtap="toggleStudentSelection">
+          <view class="modal-item-main">
+            <view class="modal-item-text">{{item.name}}</view>
+            <view class="modal-item-sub">{{item.studentLevel}}</view>
+          </view>
+          <view class="modal-checkbox {{item.checked ? 'modal-checkbox-checked' : ''}}">
+            <view wx:if="{{item.checked}}" class="modal-checkbox-inner"></view>
+          </view>
+        </view>
+      </scroll-view>
+      <view class="modal-footer">
+        <view class="btn btn-primary btn-block" bindtap="confirmStudentSelection">确认学员选择</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 指标选择弹窗 -->
+  <view wx:if="{{showIndicatorPicker}}" class="modal-overlay" bindtap="closeIndicatorPicker">
+    <view class="modal-content" catchtap="preventClose">
+      <view class="modal-header">
+        <text class="modal-title">选择指标</text>
+        <text class="modal-close" bindtap="closeIndicatorPicker">关闭</text>
+      </view>
+      <scroll-view scroll-y class="modal-body">
+        <view wx:for="{{pickerIndicators}}" wx:key="id" class="modal-item" data-id="{{item.id}}" bindtap="toggleIndicatorSelection">
+          <view class="modal-item-main">
+            <view class="modal-item-text">{{item.name}}</view>
+            <view class="modal-item-sub">满分 {{item.maxScore || 0}}</view>
+          </view>
+          <view class="modal-checkbox {{item.checked ? 'modal-checkbox-checked' : ''}}">
+            <view wx:if="{{item.checked}}" class="modal-checkbox-inner"></view>
+          </view>
+        </view>
+      </scroll-view>
+      <view class="modal-footer">
+        <view class="btn btn-primary btn-block" bindtap="confirmIndicatorSelection">确认指标选择</view>
+      </view>
+    </view>
+  </view>
+</view>

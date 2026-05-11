@@ -1,0 +1,41 @@
+{
+  "pages": [
+    "pages/login/login",
+    "pages/radar/radar",
+    "pages/trend/trend",
+    "pages/mygrades/mygrades",
+    "pages/score/score",
+    "pages/overview/overview",
+    "pages/analysis/analysis",
+    "pages/detail/detail",
+    "pages/batch/batch",
+    "pages/config/config",
+    "pages/users/users",
+    "pages/instructor-history/instructor-history"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#0a1628",
+    "navigationBarTitleText": "能力考核与评估平台",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#0a1628"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#4a5d75",
+    "selectedColor": "#2563eb",
+    "backgroundColor": "#132238",
+    "borderStyle": "black",
+    "list": [
+      { "pagePath": "pages/radar/radar", "text": "学员详情" },
+      { "pagePath": "pages/trend/trend", "text": "趋势" },
+      { "pagePath": "pages/score/score", "text": "数据" },
+      { "pagePath": "pages/mygrades/mygrades", "text": "成绩" },
+      { "pagePath": "pages/overview/overview", "text": "管理" },
+      { "pagePath": "pages/analysis/analysis", "text": "分析" }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

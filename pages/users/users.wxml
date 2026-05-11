@@ -1,0 +1,241 @@
+<view class="container">
+  <view class="page-header" style="background:transparent; padding:0 0 16px 0; border:none; display:flex; justify-content:space-between; align-items:flex-start;">
+    <view>
+      <view class="page-header-title">用户管理</view>
+      <view class="page-header-subtitle">USER MANAGEMENT</view>
+    </view>
+    <view bindtap="newUser" class="btn btn-primary btn-sm" style="height:32px; min-height:32px; border-radius:16px; padding:0 16px; flex-shrink:0;">
+      <text style="margin-right:4px;">+</text> 新增用户
+    </view>
+  </view>
+
+  <!-- 用户信息栏 -->
+  <view class="trend-toolbar" style="margin-bottom:12px;">
+    <view class="trend-user-meta">
+      <text class="trend-user-name" style="font-size:14px;">{{editingUser.name || userInfo.name || '管理员'}}</text>
+      <text wx:if="{{roleLabel}}" class="identity-badge identity-badge-role">{{roleLabel}}</text>
+    </view>
+  </view>
+
+  <!-- 统计卡片 -->
+  <view class="stat-grid" style="flex-wrap:wrap;" wx:if="{{!loading}}">
+    <view wx:for="{{manageableRoleValues}}" wx:key="*this" class="stat-card" style="min-width:80px; border-top:2px solid var(--accent-blue, #2563eb);">
+      <view class="stat-value" style="color:var(--accent-blue, #2563eb);">{{stats[item] || 0}}</view>
+      <view class="stat-label">{{item === 'student' ? '学员' : item === 'instructor' ? '教员' : item === 'deputy_director' ? '科室副主任' : item === 'department_head' ? '科室主任' : item === 'supervisor' ? '培训主管' : '中心主任'}}</view>
+    </view>
+    <view class="stat-card" style="min-width:80px; border-top:2px solid var(--radar-green, #00d26a);">
+      <view class="stat-value">{{stats.total || 0}}</view>
+      <view class="stat-label">总计</view>
+    </view>
+  </view>
+
+  <!-- 到期提醒汇总 -->
+  <view wx:if="{{reminderStats.icaoExpired + reminderStats.icaoWarning + reminderStats.medicalExpired + reminderStats.medicalWarning > 0}}" class="card reminder-summary-card" style="margin-bottom:12px;">
+    <view class="card-title" style="cursor:pointer;" bindtap="toggleReminders">
+      <text style="color:#ff4d4f;">⚠</text> 到期提醒
+      <text style="font-size:12px;font-weight:400;color:#8a9bb0;margin-left:8px;">
+        ICAO: <text wx:if="{{reminderStats.icaoExpired > 0}}" style="color:#ff4d4f;">{{reminderStats.icaoExpired}}已过期</text>
+        <text wx:if="{{reminderStats.icaoExpired > 0 && reminderStats.icaoWarning > 0}}"> / </text>
+        <text wx:if="{{reminderStats.icaoWarning > 0}}" style="color:#ffaa00;">{{reminderStats.icaoWarning}}即将到期</text>
+        ；体检: <text wx:if="{{reminderStats.medicalExpired > 0}}" style="color:#ff4d4f;">{{reminderStats.medicalExpired}}已过期</text>
+        <text wx:if="{{reminderStats.medicalExpired > 0 && reminderStats.medicalWarning > 0}}"> / </text>
+        <text wx:if="{{reminderStats.medicalWarning > 0}}" style="color:#ffaa00;">{{reminderStats.medicalWarning}}即将到期</text>
+      </text>
+      <text style="margin-left:auto;font-size:12px;color:#4a5d75;">{{showReminders ? '收起 ▲' : '展开 ▼'}}</text>
+    </view>
+    <view wx:if="{{showReminders}}" class="reminder-list">
+      <view wx:for="{{reminders}}" wx:key="userId" class="reminder-item">
+        <view class="reminder-item-header">
+          <text style="font-weight:600;color:#e8ecf1;">{{item.name}}</text>
+          <view class="user-role-tag user-role-{{item.role}}" style="margin-left:6px;">
+            {{item.role === 'student' ? '学员' : item.role === 'instructor' ? '教员' : '管理'}}
+          </view>
+          <text wx:if="{{item.department}}" style="font-size:11px;color:#4a5d75;margin-left:4px;">{{item.department}}</text>
+        </view>
+        <view class="reminder-item-tags">
+          <view wx:if="{{item.icao.status === 'warning' || item.icao.status === 'expired'}}" class="expiry-tag expiry-{{item.icao.status}}">
+            ICAO: {{item.icao.message}} <text wx:if="{{item.icao.date}}" style="margin-left:4px;opacity:0.7;">({{item.icao.date}})</text>
+          </view>
+          <view wx:if="{{item.medical.status === 'warning' || item.medical.status === 'expired'}}" class="expiry-tag expiry-{{item.medical.status}}">
+            体检: {{item.medical.message}} <text wx:if="{{item.medical.date}}" style="margin-left:4px;opacity:0.7;">({{item.medical.date}})</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 骨架屏 -->
+  <view wx:if="{{loading}}" class="trend-skeleton-list" style="margin-bottom:12px;">
+    <view class="trend-skeleton-row"></view>
+  </view>
+
+  <!-- 角色筛选 Tab -->
+  <view class="filter-tabs">
+    <view bindtap="setRoleFilter" data-role="all" class="filter-tab {{roleFilter === 'all' ? 'active' : ''}}">全部</view>
+    <view wx:for="{{manageableRoleValues}}" wx:key="*this" bindtap="setRoleFilter" data-role="{{item}}" class="filter-tab {{roleFilter === item ? 'active' : ''}}">
+      {{item === 'student' ? '学员' : item === 'instructor' ? '教员' : item === 'deputy_director' ? '科室副主任' : item === 'department_head' ? '科室主任' : item === 'supervisor' ? '培训主管' : '中心主任'}}
+    </view>
+  </view>
+
+  <!-- 放单状态筛选（仅学员角色时显示） -->
+  <view wx:if="{{roleFilter === 'student' && canRelease}}" class="filter-tabs users-release-filters">
+    <view bindtap="setReleaseFilter" data-filter="all" class="filter-tab users-release-tab {{releaseFilter === 'all' ? 'active' : ''}}">全部学员</view>
+    <view bindtap="setReleaseFilter" data-filter="not_released" class="filter-tab users-release-tab {{releaseFilter === 'not_released' ? 'active' : ''}}">未放单</view>
+    <view bindtap="setReleaseFilter" data-filter="released" class="filter-tab users-release-tab {{releaseFilter === 'released' ? 'active' : ''}}">已放单</view>
+  </view>
+
+  <!-- 用户列表 -->
+  <view class="card">
+    <view class="card-title">用户列表 ({{loading ? '—' : filteredUsers.length}})</view>
+    
+    <view wx:if="{{filteredUsers.length === 0 && !loading}}" class="empty-state empty-state-compact">
+      <view class="empty-text">暂无用户数据</view>
+    </view>
+
+    <view wx:for="{{filteredUsers}}" wx:key="userId" class="list-item list-item-row">
+      <view class="list-item-main">
+        <view class="list-item-name-row">
+          <text class="list-item-title">{{item.name}}</text>
+          <view class="user-role-tag user-role-{{item.role}}">
+            {{item.role === 'student' ? '学员' : item.role === 'instructor' ? '教员' : item.role === 'deputy_director' ? '科室副主任' : item.role === 'supervisor' ? '培训主管' : item.role === 'department_head' ? '科室主任' : '中心主任'}}
+          </view>
+          <view wx:if="{{item.role === 'student' && item.isReleased}}" class="tag-green">已放单</view>
+          <view wx:if="{{item.studentLevel}}" class="tag-amber">{{item.studentLevel}}</view>
+          <view wx:if="{{item.instructorLevel}}" class="tag-green">{{item.instructorLevel}}</view>
+          <view wx:if="{{item.icaoExpiry.status === 'warning'}}" class="expiry-tag expiry-warning">ICAO {{item.icaoExpiry.message}}</view>
+          <view wx:if="{{item.icaoExpiry.status === 'expired'}}" class="expiry-tag expiry-expired">ICAO {{item.icaoExpiry.message}}</view>
+          <view wx:if="{{item.medicalExpiry.status === 'warning'}}" class="expiry-tag expiry-warning">体检 {{item.medicalExpiry.message}}</view>
+          <view wx:if="{{item.medicalExpiry.status === 'expired'}}" class="expiry-tag expiry-expired">体检 {{item.medicalExpiry.message}}</view>
+        </view>
+        <view class="list-item-sub">
+          <text>{{item.username}}</text>
+          <text wx:if="{{item.department}}" style="margin-left: 8px;">科室: {{item.department}}</text>
+          <text wx:if="{{item.team}}" style="margin-left: 8px;">班组: {{item.team}}</text>
+          <text wx:if="{{item.icaoDateShort}}" style="margin-left: 8px;">ICAO: {{item.icaoDateShort}}</text>
+          <text wx:if="{{item.medicalDateShort}}" style="margin-left: 8px;">体检: {{item.medicalDateShort}}</text>
+          <text wx:if="{{item.role === 'student' && item.isReleased && item.releasedAtShort}}" style="margin-left: 8px; color: var(--radar-green);">放单时间: {{item.releasedAtShort}}</text>
+        </view>
+      </view>
+      
+      <view class="manager-user-actions">
+        <view bindtap="editUser" data-id="{{item.userId}}" class="btn btn-sm btn-secondary">编辑</view>
+        <view wx:if="{{item.role === 'student' && canRelease}}" bindtap="handleRelease" data-id="{{item.userId}}" data-released="{{item.isReleased}}" class="btn btn-sm {{item.isReleased ? 'btn-warning' : 'btn-success'}}">
+          {{item.isReleased ? '取消放单' : '放单'}}
+        </view>
+        <view bindtap="deleteUser" data-id="{{item.userId}}" class="btn btn-sm btn-danger">删除</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 新增/编辑弹窗 -->
+  <view wx:if="{{editing}}" class="popup-mask" bindtap="closeEdit">
+    <view class="popup-content" catchtap="preventHide" style="max-height:80vh;overflow-y:auto;">
+      <view class="popup-header">
+        <view style="font-size:16px;font-weight:700;color:var(--text-primary);">{{isNew ? '新增用户' : '编辑用户'}}</view>
+        <view bindtap="closeEdit" style="font-size:22px;color:var(--text-muted);padding:4px;">✕</view>
+      </view>
+
+      <!-- 新增时显示用户名和密码 -->
+      <view class="form-group" wx:if="{{isNew}}">
+        <view class="form-label">用户名 <text style="color:var(--alert-red);">*</text></view>
+        <input class="input config-mono-input" value="{{editingUser.username}}" placeholder="请输入登录用户名" data-field="username" bindinput="updateEditField" />
+      </view>
+
+      <view class="form-group" wx:if="{{isNew}}">
+        <view class="form-label">密码 <text style="color:var(--alert-red);">*</text></view>
+        <input class="input" value="{{editingUser.password}}" placeholder="请输入初始密码" password data-field="password" bindinput="updateEditField" />
+      </view>
+
+      <!-- 编辑时显示密码重置 -->
+      <view class="form-group" wx:if="{{!isNew}}">
+        <view class="form-label">新密码（留空不修改）</view>
+        <input class="input" value="{{editingUser.password}}" placeholder="留空表示不修改" password data-field="password" bindinput="updateEditField" />
+      </view>
+
+      <view class="form-group">
+        <view class="form-label">姓名 <text style="color:var(--alert-red);">*</text></view>
+        <input class="input" value="{{editingUser.name}}" placeholder="请输入姓名" data-field="name" bindinput="updateEditField" />
+      </view>
+
+      <view class="form-group">
+        <view class="form-label">所在科室 <text wx:if="{{!isCenterDirector}}" style="color:var(--text-muted);font-size:11px;">（自动设定为当前科室）</text></view>
+        <view wx:if="{{isCenterDirector}}">
+          <picker bindchange="updateEditDepartment" value="{{departmentIndex}}" range="{{departments}}">
+            <view class="picker-input input">
+              <text style="color:{{editingUser.department ? 'var(--text-primary)' : 'var(--text-muted)'}};">{{editingUser.department || '请选择科室'}}</text>
+              <text class="picker-arrow">▼</text>
+            </view>
+          </picker>
+        </view>
+        <view wx:else class="input" style="background:rgba(255,255,255,0.03);color:var(--text-muted);">
+          <text>{{editingUser.department || getUserDept() || '无科室'}}</text>
+        </view>
+      </view>
+
+      <view class="form-group">
+        <view class="form-label">所在班组</view>
+        <picker bindchange="updateEditTeam" value="{{teamIndex}}" range="{{teams}}">
+          <view class="picker-input input">
+            <text style="color:{{editingUser.team ? 'var(--text-primary)' : 'var(--text-muted)'}};">{{editingUser.team || '请选择班组'}}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+
+      <view class="form-group">
+        <view class="form-label">权限角色</view>
+        <picker bindchange="updateEditRole" value="{{roleIndex}}" range="{{manageableRoleList}}">
+          <view class="picker-input input">
+            <text style="color:var(--text-primary);">{{manageableRoleList[roleIndex]}}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+
+      <view class="form-group" wx:if="{{editingUser.role === 'student'}}">
+        <view class="form-label">阶/段</view>
+        <picker bindchange="updateEditStudentLevel" value="{{studentLevelIndex}}" range="{{studentLevels}}">
+          <view class="picker-input input">
+            <text style="color:{{editingUser.studentLevel ? 'var(--text-primary)' : 'var(--text-muted)'}};">{{editingUser.studentLevel || '请选择阶段'}}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+
+      <view class="form-group" wx:if="{{editingUser.role === 'instructor'}}">
+        <view class="form-label">教员等级</view>
+        <picker bindchange="updateEditInstructorLevel" value="{{instructorLevelIndex}}" range="{{instructorLevels}}">
+          <view class="picker-input input">
+            <text style="color:{{editingUser.instructorLevel ? 'var(--text-primary)' : 'var(--text-muted)'}};">{{editingUser.instructorLevel || '请选择等级'}}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+
+      <view class="form-group">
+        <view class="form-label">ICAO考试日期 <text style="color:var(--text-muted);font-size:11px;">（选填，3年有效期）</text></view>
+        <picker mode="date" value="{{editingUser.icaoDate}}" bindchange="updateEditIcaoDate">
+          <view class="picker-input input">
+            <text style="color:{{editingUser.icaoDate ? 'var(--text-primary)' : 'var(--text-muted)'}};">{{editingUser.icaoDate || '请选择日期'}}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+
+      <view class="form-group">
+        <view class="form-label">体检日期 <text style="color:var(--text-muted);font-size:11px;">（选填，2年有效期）</text></view>
+        <picker mode="date" value="{{editingUser.medicalDate}}" bindchange="updateEditMedicalDate">
+          <view class="picker-input input">
+            <text style="color:{{editingUser.medicalDate ? 'var(--text-primary)' : 'var(--text-muted)'}};">{{editingUser.medicalDate || '请选择日期'}}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+
+      <view class="popup-actions">
+        <view bindtap="closeEdit" class="popup-btn popup-btn-cancel">取消</view>
+        <view bindtap="saveUser" class="popup-btn popup-btn-save">保存</view>
+      </view>
+    </view>
+  </view>
+</view>

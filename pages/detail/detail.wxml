@@ -1,0 +1,22 @@
+<view class="container">
+  <view class="page-header" style="margin:-12px -12px 12px -12px;">
+    <view class="page-header-title">{{category}}</view>
+    <view class="page-header-subtitle">评分项明细</view>
+  </view>
+  <view class="card">
+    <view wx:for="{{items}}" wx:key="id" class="list-item" style="padding:12px 0;">
+      <view class="radar-detail-row">
+        <view class="radar-detail-left">
+          <view class="radar-detail-name">{{item.name}}</view>
+          <view wx:if="{{item.description}}" class="radar-detail-desc">{{item.description}}</view>
+        </view>
+        <view class="radar-detail-right">
+          <text class="radar-detail-score" style="color:var(--text-primary);">{{item.maxScore}}分</text>
+        </view>
+      </view>
+    </view>
+    <view wx:if="{{items.length === 0}}" class="empty-state">
+      <view class="empty-text">暂无详细评分项</view>
+    </view>
+  </view>
+</view>

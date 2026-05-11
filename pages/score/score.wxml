@@ -1,0 +1,475 @@
+<view class="container">
+  <!-- 用户信息栏 -->
+  <view class="score-toolbar-header">
+    <view class="trend-user-meta">
+      <text class="trend-user-name">{{userInfo.name || '未登录'}}</text>
+      <text wx:if="{{roleLabel}}" class="identity-badge identity-badge-role">{{roleLabel}}</text>
+      <text wx:if="{{levelLabel}}" class="identity-badge identity-badge-level">{{levelLabel}}</text>
+    </view>
+  </view>
+
+  <!-- ========== 教员评分界面 ========== -->
+  <block wx:if="{{canScore && !isManager}}">
+    <!-- 学员选择 -->
+    <view class="card score-card-gradient">
+      <view class="form-group score-form-group">
+        <view class="form-label">
+          <text class="status-dot blue"></text>
+          选择学员
+        </view>
+        <picker bindchange="onStudentChange" range="{{students}}" range-key="name">
+          <view class="picker input score-picker">
+            <text class="{{selectedStudentName ? 'score-picker-val' : 'score-picker-placeholder'}}">{{selectedStudentName || '请选择学员'}}</text>
+            <text class="score-picker-arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+    </view>
+
+    <!-- 扇区选择 -->
+    <view class="card score-margin-card">
+      <view class="form-group score-form-group">
+        <view class="form-label">
+          <text class="status-dot blue"></text>
+          扇区 / SECTOR
+        </view>
+        <view wx:if="{{sectorConfigLoading}}" class="score-loading">
+          <text class="score-loading-text">正在加载扇区配置...</text>
+        </view>
+        <view wx:else class="score-sector-grid">
+          <view wx:for="{{sectorConfigKeys}}" wx:key="*this" class="sector-card score-sector-item {{sector === item ? 'active' : ''}}" bindtap="switchSector" data-sector="{{item}}">
+            <view class="score-sector-item-title">{{item === 'ACC02_32' ? 'ACC02/32' : item === 'ACC18_28' ? 'ACC18/28' : item}}</view>
+            <view class="score-sector-item-subtitle">{{sectorConfigs[item].categories.length}}项</view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 历史评分 -->
+    <view class="card mb-12">
+      <view class="section-title section-title-bar">历史评分</view>
+      <view class="caption-text mb-10">
+        当前筛选：{{selectedStudentName || '全部学员'}} · {{sectorConfigNames[sector] || sector}}
+      </view>
+      <view wx:if="{{editingScoreId}}" class="trend-inline-alert history-alert">
+        <text>当前正在修改历史评分（仅可修改一次）</text>
+        <!-- dynamic: color -->
+        <text bindtap="cancelEdit" class="btn-text-sm text-alert">取消修改</text>
+      </view>
+      <view wx:if="{{historyLoading}}" class="trend-loading-state">历史评分加载中...</view>
+      <!-- dynamic: background, border-color, color -->
+      <view wx:if="{{historyError}}" class="trend-inline-alert" style="background:rgba(255,77,79,0.08);border-color:rgba(255,77,79,0.2);color:var(--alert-red);">
+        <text>{{historyError}}</text>
+        <!-- dynamic: border -->
+        <text bindtap="loadHistory" class="btn-text-sm rounded-4" style="border:1px solid rgba(255,77,79,0.3);">重试</text>
+      </view>
+      <view wx:if="{{!historyLoading && scoreHistory.length === 0 && !historyError}}" class="empty-state empty-state-compact">
+        <text class="empty-text">暂无历史评分记录</text>
+      </view>
+      <view wx:for="{{scoreHistory}}" wx:for-index="hIdx" wx:for-item="hItem" wx:key="scoreId" wx:if="{{hIdx < 8}}" class="score-history-row">
+        <view>
+          <view class="item-title history-date">{{hItem.date}} · {{hItem.studentName}}</view>
+          <view class="caption-text history-meta">总分 {{hItem.totalScore}} · {{hItem.grade}} · 已修改 {{hItem.editCount || 0}} / 1 次</view>
+        </view>
+        <!-- dynamic: background, color, border -->
+        <view bindtap="handleStartEdit" data-score-id="{{hItem.scoreId}}" class="tag-btn" style="background:{{(hItem.instructorId === userInfo.userId && (hItem.editCount || 0) < 1) ? 'rgba(37,99,235,0.12)' : 'var(--bg-tertiary)'}};color:{{(hItem.instructorId === userInfo.userId && (hItem.editCount || 0) < 1) ? 'var(--accent-blue)' : 'var(--text-muted)'}};border:1px solid {{(hItem.instructorId === userInfo.userId && (hItem.editCount || 0) < 1) ? 'rgba(37,99,235,0.3)' : 'var(--bg-tertiary)'}};">
+          {{(hItem.instructorId === userInfo.userId && (hItem.editCount || 0) < 1) ? '修改评分' : '不可修改'}}
+        </view>
+      </view>
+    </view>
+
+    <!-- 总分面板 -->
+    <!-- dynamic: border-color -->
+    <view class="card total-panel" style="border:1px solid {{gradeColor}}40;">
+      <view class="total-bar">
+        <view>
+          <view class="total-bar-label">当前总分 / TOTAL</view>
+          <!-- dynamic: color -->
+          <view class="total-bar-value" style="color:{{gradeColor}};">
+            {{totalScore}}<text class="text-14 text-muted fw-400 ml-4">/ {{sectorConfig.totalScore || 100}}</text>
+          </view>
+        </view>
+        <view class="text-right">
+          <!-- dynamic: background, color, border -->
+          <view class="score-badge total-panel-grade" style="background:{{gradeColor}}15;color:{{gradeColor}};border:1px solid {{gradeColor}}30;">
+            {{gradeText}}
+          </view>
+          <view class="caption-text total-panel-hint">合格线 85 | 优秀线 95</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 数据分析面板 -->
+    <view class="card mb-12">
+      <view bindtap="toggleAnalysis" class="score-category-header flex-between">
+        <view class="flex-center-gap8">
+          <text class="text-16">📊</text>
+          <view>
+            <view class="section-title">数据分析</view>
+            <view class="caption-text mt-2">实时分析学员能力分布与薄弱环节</view>
+          </view>
+        </view>
+        <!-- dynamic: transform -->
+        <text class="text-18 text-muted transition-transform" style="{{showAnalysis ? 'transform:rotate(180deg);' : ''}}">▼</text>
+      </view>
+
+      <block wx:if="{{showAnalysis}}">
+        <view class="analysis-panel">
+          <!-- 总分进度 -->
+          <view class="analysis-progress-label">
+            <view class="analysis-progress-header">
+              <text class="text-13 text-secondary">总分进度</text>
+              <!-- dynamic: color -->
+              <text class="text-13 fw-600" style="color:{{gradeColor}};">{{totalScore}} / {{sectorConfig.totalScore || 100}}</text>
+            </view>
+            <view class="analysis-track">
+              <view class="analysis-threshold" style="left:85%;background:var(--amber);"></view>
+              <view class="analysis-threshold" style="left:95%;background:var(--radar-green);"></view>
+              <!-- dynamic: width, background -->
+              <view class="analysis-fill" style="width:{{totalProgressPct}}%;background:{{gradeColor}};"></view>
+            </view>
+            <view class="analysis-threshold-legend">
+              <text class="text-10 text-amber">合格线 85</text>
+              <text class="text-10 text-green">优秀线 95</text>
+            </view>
+          </view>
+
+          <!-- 分类得分率 -->
+          <view class="mb-12">
+            <view class="section-subtitle">分类得分率</view>
+            <view wx:for="{{sectorConfig.categories}}" wx:key="id" wx:for-item="cat" class="analysis-cat-item">
+              <view class="analysis-cat-header">
+                <!-- dynamic: color, font-weight -->
+                <text class="text-12" style="color:{{catRateWeak[cat.id] ? 'var(--text-primary)' : 'var(--text-primary)'}};font-weight:{{catRateWeak[cat.id] ? '600' : '400'}};">
+                  {{cat.name}}
+                  <!-- dynamic: color -->
+                  <text wx:if="{{catRateWeak[cat.id]}}" class="text-10 text-alert ml-4">⚠ 薄弱</text>
+                </text>
+                <!-- dynamic: color -->
+                <text class="text-12 fw-600" style="color:{{catRatePass[cat.id] ? 'var(--radar-green)' : 'var(--alert-red)'}};">{{categoryScores[cat.id] || 0}}/{{cat.maxScore}} ({{catRates[cat.id] || 0}}%)</text>
+              </view>
+              <view class="analysis-track analysis-track-sm">
+                <!-- dynamic: left, background -->
+                <view wx:if="{{cat.minScore > 0}}" class="analysis-threshold" style="left:{{(cat.minScore / cat.maxScore * 100)}}%;background:var(--amber)80;"></view>
+                <!-- dynamic: width, background -->
+                <view class="analysis-fill analysis-fill-sm" style="width:{{catRates[cat.id] || 0}}%;background:{{catRateWeak[cat.id] ? 'var(--alert-red)' : (catRatePass[cat.id] ? 'var(--radar-green)' : 'var(--amber)')}};"></view>
+              </view>
+            </view>
+          </view>
+
+          <!-- 薄弱项 -->
+          <view wx:if="{{weakCategories.length > 0}}" class="analysis-summary-box analysis-summary-box-weak">
+            <view class="analysis-summary-title analysis-summary-title-weak">⚠ 薄弱环节提示</view>
+            <view class="analysis-summary-content">
+              <view wx:for="{{weakCategories}}" wx:key="id" class="analysis-summary-line">
+                <text class="analysis-summary-emphasis">{{item.name}}</text>
+                ：得分率仅 {{item.rate}}%，建议加强训练。
+                <text wx:if="{{item.score < item.minScore}}" class="analysis-summary-fail-note">（未达合格线 {{item.minScore}} 分）</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 优势项 -->
+          <view wx:if="{{strongCategories.length > 0}}" class="analysis-summary-box analysis-summary-box-strong">
+            <view class="analysis-summary-title analysis-summary-title-strong">✓ 优势能力</view>
+            <view class="analysis-summary-content">
+              <view wx:for="{{strongCategories}}" wx:key="id" class="inline-block mr-8 mb-4">
+                <text class="analysis-summary-emphasis">{{item.name}}</text>
+                （{{item.score}}/{{item.maxScore}}）
+              </view>
+            </view>
+          </view>
+        </view>
+      </block>
+    </view>
+
+    <!-- 评分分类 - 手风琴 -->
+    <view wx:for="{{sectorConfig.categories}}" wx:key="id" wx:for-item="cat" class="card mb-10">
+      <!-- 分类标题 -->
+      <view bindtap="toggleCategory" data-cat="{{cat.id}}" class="score-category-header flex-between">
+        <view class="flex-1 min-w-0">
+          <view class="score-category-title">{{cat.name}}</view>
+          <view class="score-category-meta">满分{{cat.maxScore}}分 | 合格线{{cat.minScore || 0}}分 | {{cat.items.length}}个评分项</view>
+        </view>
+        <view class="flex-center-gap10 flex-shrink-0">
+          <!-- dynamic: color -->
+          <text class="score-category-score" style="color:{{catRatePass[cat.id] ? 'var(--radar-green)' : 'var(--alert-red)'}};">{{categoryScores[cat.id] || 0}}/{{cat.maxScore}}</text>
+          <!-- dynamic: transform -->
+          <text class="score-category-toggle" style="{{(expandedCategory === 'ALL' || expandedCategory === cat.id) ? 'transform:rotate(180deg);' : ''}}">▼</text>
+        </view>
+      </view>
+
+      <!-- 展开的评分项 -->
+      <view wx:if="{{expandedCategory === 'ALL' || expandedCategory === cat.id}}" class="score-item-divider">
+        <view wx:for="{{cat.items}}" wx:key="id" wx:for-item="item" class="score-item-box">
+          <view class="score-item-header">
+            <view class="score-item-title-wrap">
+              <view class="body-text text-13 lh-14">{{item.name}}</view>
+              <view wx:if="{{item.description}}" class="caption-text mt-2 lh-13">{{item.description}}</view>
+            </view>
+            <view class="score-item-input-wrap">
+              <text class="caption-text font-mono">/{{item.maxScore}}</text>
+              <input class="input score-input-narrow" type="number" step="1"
+                     value="{{scores[cat.id+'_'+item.id] || ''}}" placeholder="0" placeholder-class="placeholder"
+                     data-cat="{{cat.id}}" data-item="{{item.id}}" data-max="{{item.maxScore}}"
+                     bindinput="onScoreInput" />
+            </view>
+          </view>
+          
+          <!-- 单项进度条 -->
+          <view class="progress-bar">
+            <!-- dynamic: width, background -->
+            <view class="progress-fill" style="width:{{item.maxScore > 0 ? ((scores[cat.id+'_'+item.id]||0)/item.maxScore*100) : 0}}%;background:{{(scores[cat.id+'_'+item.id]||0) >= item.maxScore*0.7 ? 'var(--radar-green)' : (scores[cat.id+'_'+item.id]||0) > 0 ? 'var(--amber)' : 'var(--border-color)'}};"></view>
+          </view>
+
+          <!-- 快捷分按钮 -->
+          <view wx:if="{{item._quickScores && item._quickScores.length > 0}}" class="flex-wrap-gap6 mt-8">
+            <view wx:for="{{item._quickScores}}" wx:key="*this" wx:for-item="deduction"
+                  class="score-quick-btn {{(scores[cat.id+'_'+item.id] || 0) === (item.maxScore - deduction) ? 'active' : ''}}" 
+                  bindtap="onQuickScore" data-cat="{{cat.id}}" data-item="{{item.id}}" data-max="{{item.maxScore}}" data-val="{{deduction}}">
+              {{deduction === 0 ? '满分' : '扣' + deduction + '分'}}
+            </view>
+          </view>
+
+          <!-- 扣分说明（未满分必填） -->
+          <view wx:if="{{item.maxScore > 0 && (scores[cat.id+'_'+item.id] || 0) < item.maxScore}}" class="item-reason-box">
+            <view class="item-reason-label">扣分说明（未满分必填）</view>
+            <textarea class="item-reason-textarea" 
+                      value="{{scoreReasons[cat.id+'_'+item.id] || ''}}"
+                      placeholder="请说明扣分原因（例如：具体哪一步、出现了什么问题、造成了什么影响）"
+                      bindinput="onReasonInput" data-cat="{{cat.id}}" data-item="{{item.id}}" maxlength="200" />
+            <view class="item-reason-hint">{{(_reasonLengths[cat.id+'_'+item.id] || 0)}}/200</view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 提交 -->
+    <button class="btn btn-primary btn-block submit-btn" bindtap="submitScore" loading="{{submitting}}" disabled="{{submitting || !selectedStudent}}">
+      {{submitting ? '提交中...' : (selectedStudent ? (editingScoreId ? '提交修改（仅一次）' : '提交评分') : '请先选择学员')}}
+    </button>
+
+    <!-- Toast提示 -->
+    <view wx:if="{{toast}}" class="toast-box" bindtap="setData" data-toast="">
+      <text class="text-14 text-primary">{{toast}}</text>
+    </view>
+    <view class="spacer-40"></view>
+  </block>
+
+  <!-- ========== 管理角色：数据分析 ========== -->
+  <block wx:if="{{isManager}}">
+    <!-- 筛选面板 -->
+    <view class="card mb-12">
+      <view class="card-title card-title-bar flex-between" bindtap="toggleFilterPanel">
+        <text>数据筛选</text>
+        <text class="text-12 text-muted ml-auto">{{showFilterPanel ? '▲' : '▼'}}</text>
+      </view>
+
+      <block wx:if="{{showFilterPanel}}">
+        <!-- 学员选择 -->
+        <view class="filter-section-lg">
+          <view class="label">学员选择（最多6人）</view>
+          <view class="flex-wrap-gap8 mb-6 min-h-32">
+            <view wx:for="{{analysisConfig.selectedStudentNames}}" wx:key="*this" class="score-selected-tag">
+              <text>{{item}}</text>
+              <text class="score-selected-tag-remove" bindtap="removeStudent" data-index="{{index}}">✕</text>
+            </view>
+            <view wx:if="{{analysisConfig.selectedStudentNames.length < 6}}" bindtap="openStudentPicker" class="analysis-trigger">+ 添加学员</view>
+          </view>
+        </view>
+
+        <!-- 时间范围 -->
+        <view class="filter-section">
+          <view class="label">时间范围</view>
+          <picker bindchange="onTimeRangeChange" range="{{timeRangeOptions}}" range-key="label">
+            <view class="input score-picker-row">
+              <text class="body-text text-13">{{timeRangeLabel}}</text>
+              <text class="caption-text">▼</text>
+            </view>
+          </picker>
+        </view>
+
+        <!-- 自定义日期 -->
+        <view wx:if="{{analysisConfig.timeRange === 'custom'}}" class="flex gap-8 mb-10">
+          <view class="flex-1">
+            <view class="label">开始日期</view>
+            <picker mode="date" bindchange="onStartDateChange" value="{{analysisConfig.startDate}}">
+              <view class="input score-picker-row">
+                <text class="body-text text-13">{{analysisConfig.startDate || '选择日期'}}</text>
+              </view>
+            </picker>
+          </view>
+          <view class="flex-1">
+            <view class="label">结束日期</view>
+            <picker mode="date" bindchange="onEndDateChange" value="{{analysisConfig.endDate}}">
+              <view class="input score-picker-row">
+                <text class="body-text text-13">{{analysisConfig.endDate || '选择日期'}}</text>
+              </view>
+            </picker>
+          </view>
+        </view>
+
+        <!-- 阶段筛选 -->
+        <view class="filter-section">
+          <view class="label">阶段筛选</view>
+          <picker bindchange="onStageFilterChange" range="{{stageOptions}}">
+            <view class="input score-picker-row">
+              <text class="body-text text-13">{{stageFilterLabel}}</text>
+              <text class="caption-text">▼</text>
+            </view>
+          </picker>
+        </view>
+
+        <!-- 扇区 -->
+        <view class="filter-section">
+          <view class="label">扇区</view>
+          <view class="score-option-grid">
+            <view class="sector-card {{analysisConfig.sector === 'ACC02_32' ? 'active' : ''}}" bindtap="switchAnalysisSector" data-sector="ACC02_32">
+              <view class="caption-text font-mono-alt">ACC02/32</view>
+            </view>
+            <view class="sector-card {{analysisConfig.sector === 'ACC08' ? 'active' : ''}}" bindtap="switchAnalysisSector" data-sector="ACC08">
+              <view class="caption-text font-mono-alt">ACC08</view>
+            </view>
+            <view class="sector-card {{analysisConfig.sector === 'ACC18_28' ? 'active' : ''}}" bindtap="switchAnalysisSector" data-sector="ACC18_28">
+              <view class="caption-text font-mono-alt">ACC18/28</view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 图表类型 -->
+        <view class="filter-section">
+          <view class="label">图表类型</view>
+          <view class="score-option-grid">
+            <view class="sector-card {{analysisConfig.chartType === 'radar' ? 'active' : ''}}" bindtap="switchChartType" data-type="radar">
+              <view class="caption-text">雷达图</view>
+            </view>
+            <view class="sector-card {{analysisConfig.chartType === 'bar' ? 'active' : ''}}" bindtap="switchChartType" data-type="bar">
+              <view class="caption-text">柱形图</view>
+            </view>
+            <view class="sector-card {{analysisConfig.chartType === 'line' ? 'active' : ''}}" bindtap="switchChartType" data-type="line">
+              <view class="caption-text">折线图</view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 对比维度 -->
+        <view class="filter-section-lg">
+          <view class="label">对比维度</view>
+          <view class="score-option-grid">
+            <view class="sector-card {{analysisConfig.compareDimension === 'student' ? 'active' : ''}}" bindtap="switchCompareDimension" data-dim="student">
+              <view class="caption-text">学员对比</view>
+            </view>
+            <view class="sector-card {{analysisConfig.compareDimension === 'time' ? 'active' : ''}}" bindtap="switchCompareDimension" data-dim="time">
+              <view class="caption-text">时间趋势</view>
+            </view>
+            <view class="sector-card {{analysisConfig.compareDimension === 'category' ? 'active' : ''}}" bindtap="switchCompareDimension" data-dim="category">
+              <view class="caption-text">分类对比</view>
+            </view>
+          </view>
+        </view>
+
+        <view class="btn btn-primary btn-block h-42 text-15 ls-1" bindtap="generateAnalysis">生成图表</view>
+      </block>
+    </view>
+
+    <!-- 图表区域 -->
+    <view class="card chart-panel" wx:if="{{chartData}}">
+      <view class="flex-between mb-8">
+        <view class="card-title card-title-no-border">
+          <text wx:if="{{analysisConfig.chartType === 'radar'}}">能力雷达</text>
+          <text wx:if="{{analysisConfig.chartType === 'bar'}}">柱形对比</text>
+          <text wx:if="{{analysisConfig.chartType === 'line'}}">趋势折线</text>
+        </view>
+        <text class="text-11 text-muted">{{analysisConfig.sector === 'ACC02_32' ? 'ACC02/32' : analysisConfig.sector === 'ACC08' ? 'ACC08' : 'ACC18/28'}}</text>
+      </view>
+      <canvas type="2d" id="analysisChartCanvas" class="chart-canvas"></canvas>
+      <!-- 图例 -->
+      <view class="chart-legend">
+        <view wx:for="{{chartData.datasets}}" wx:key="name" class="chart-legend-item">
+          <!-- dynamic: background -->
+          <view class="chart-legend-dot" style="background:{{item.color}};"></view>
+          <text class="chart-legend-label">{{item.name}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 数据洞察 -->
+    <view class="card mb-12" wx:if="{{insightCards.length > 0}}">
+      <view class="card-title card-title-bar">数据洞察</view>
+      <view wx:for="{{insightCards}}" wx:key="title" class="insight-card-inner">
+        <view class="flex-center-gap6 mb-8">
+          <text class="insight-icon">{{item.icon}}</text>
+          <text class="insight-title-text-inner">{{item.title}}</text>
+        </view>
+        <view wx:for="{{item.items}}" wx:for-item="line" wx:key="*this" class="insight-line-inner">{{line}}</view>
+      </view>
+    </view>
+
+    <!-- 数据明细表格 -->
+    <view class="card mb-12" wx:if="{{analysisDatasets.length > 0}}">
+      <view class="card-title card-title-bar">数据明细</view>
+      <view wx:for="{{analysisDatasets}}" wx:key="student.userId" class="mb-14">
+        <view class="detail-student-name">{{item.student.name}} {{item.student.level ? '(' + item.student.level + ')' : ''}}</view>
+        <view class="detail-table-wrap">
+          <view class="detail-table-header">
+            <text class="w-60">日期</text>
+            <text class="w-45 text-center">总分</text>
+            <text class="flex-1 text-center">等级</text>
+          </view>
+          <view wx:for="{{item.scores}}" wx:for-item="sc" wx:for-index="scIdx" wx:key="scIdx" class="detail-table-row">
+            <text class="w-60 text-muted font-mono-alt">{{sc.date}}</text>
+            <!-- dynamic: color -->
+            <text class="w-45 text-center fw-700 font-mono-alt" style="color:{{sc.totalScore >= 90 ? 'var(--radar-green)' : sc.totalScore >= 85 ? 'var(--amber)' : 'var(--alert-red)'}};">{{sc.totalScore}}</text>
+            <text class="flex-1 text-center text-secondary">{{sc.totalScore >= 95 ? '优秀' : sc.totalScore >= 90 ? '良好' : sc.totalScore >= 85 ? '合格' : '不合格'}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 未生成图表提示 -->
+    <view class="empty-state empty-state-padded" wx:if="{{!chartData}}">
+      <view class="empty-icon">📊</view>
+      <view class="empty-title-md">请选择条件并生成图表</view>
+      <view class="empty-desc">选择学员、时间、扇区等条件，点击「生成图表」开始分析</view>
+    </view>
+
+    <view class="spacer-40"></view>
+  </block>
+
+  <!-- ========== 学员友好提示 ========== -->
+  <block wx:if="{{!canScore && !isManager}}">
+    <view class="empty-state empty-state-padded-lg">
+      <view class="empty-icon">📝</view>
+      <view class="empty-title-lg">评分功能</view>
+      <view class="empty-desc-lg">
+        评分功能仅限教员和管理员使用<br/>
+        您的评估记录可在「管理」页面查看
+      </view>
+    </view>
+  </block>
+
+  <!-- ========== 学员选择弹窗 ========== -->
+  <view wx:if="{{showStudentPicker}}" class="modal-overlay" bindtap="closeStudentPicker">
+    <view class="modal-body" catchtap="preventClose">
+      <view class="modal-header">
+        <text class="modal-title">选择学员</text>
+        <text bindtap="closeStudentPicker" class="modal-close">关闭</text>
+      </view>
+      <scroll-view scroll-y class="scroll-y-320">
+        <view wx:for="{{pickerStudents}}" wx:key="userId" bindtap="toggleStudentSelection" data-id="{{item.userId}}" class="student-picker-item">
+          <view>
+            <text class="modal-student-name">{{item.name}}</text>
+            <text class="modal-student-level">{{item.level || '未设置阶段'}}</text>
+          </view>
+          <!-- dynamic: border-color -->
+          <view class="student-picker-check" style="border-color:{{item.selected ? 'var(--radar-green)' : 'var(--text-muted)'}};">
+            <view wx:if="{{item.selected}}" class="student-picker-check-inner"></view>
+          </view>
+        </view>
+      </scroll-view>
+      <view class="modal-footer">
+        <view class="btn btn-primary btn-block modal-confirm-btn" bindtap="confirmStudentSelection">确认选择（已选 {{selectedStudentCount}} 人）</view>
+      </view>
+    </view>
+  </view>
+</view>
