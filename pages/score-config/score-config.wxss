@@ -1,0 +1,148 @@
+/* pages/score-config/score-config.wxss */
+
+/* ==================== 分配模式 ==================== */
+.score-mode-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.score-mode-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #1e3a5f);
+  background: var(--bg-primary, #0a1628);
+  transition: all 0.2s;
+}
+
+.score-mode-item.active {
+  border-color: var(--accent-blue, #2563eb);
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.score-mode-radio {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--text-muted, #4a5d75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.score-mode-item.active .score-mode-radio {
+  border-color: var(--accent-blue, #2563eb);
+}
+
+.score-mode-radio-inner {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-blue, #2563eb);
+}
+
+.score-mode-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.score-mode-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #e8ecf1);
+}
+
+.score-mode-desc {
+  font-size: 12px;
+  color: var(--text-secondary, #8a9bb0);
+  margin-top: 2px;
+}
+
+/* ==================== 分配表 ==================== */
+.score-assign-table {
+  overflow-x: auto;
+}
+
+.score-assign-header,
+.score-assign-row {
+  display: flex;
+  align-items: center;
+  min-width: max-content;
+}
+
+.score-assign-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.score-assign-cell {
+  min-width: 64px;
+  max-width: 100px;
+  padding: 8px 4px;
+  text-align: center;
+  border-bottom: 1px solid var(--bg-tertiary, #1a2d45);
+  font-size: 12px;
+}
+
+.score-assign-corner {
+  min-width: 80px;
+  max-width: 100px;
+  font-weight: 600;
+  color: var(--text-secondary, #8a9bb0);
+  background: var(--bg-secondary, #132238);
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+
+.score-assign-col-head {
+  color: var(--text-secondary, #8a9bb0);
+  background: var(--bg-secondary, #132238);
+}
+
+.score-assign-row-head {
+  min-width: 80px;
+  max-width: 100px;
+  font-weight: 500;
+  color: var(--text-primary, #e8ecf1);
+  background: var(--bg-secondary, #132238);
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  text-align: left;
+  padding-left: 8px;
+}
+
+.score-assign-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-check-box {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 2px solid var(--text-muted, #4a5d75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-check-box.checked {
+  border-color: var(--accent-blue, #2563eb);
+  background: var(--accent-blue, #2563eb);
+}
+
+.score-check-inner {
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border-radius: 2px;
+}

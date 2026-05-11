@@ -1,0 +1,80 @@
+<view class="container">
+  <view wx:if="{{loadError}}" class="trend-inline-alert">
+    <text>{{loadError}}</text>
+    <view class="btn trend-retry-btn" bindtap="loadConfig">重试</view>
+  </view>
+
+  <!-- 评分间隔 -->
+  <view class="card">
+    <view class="card-title">评分间隔</view>
+    <view class="form-group">
+      <view class="form-label">评分周期</view>
+      <picker bindchange="onIntervalChange" range="{{intervalOptions}}" range-key="label" value="{{intervalIndex}}">
+        <view class="input">{{intervalOptions[intervalIndex].label}}（{{intervalOptions[intervalIndex].days}}天）</view>
+      </picker>
+    </view>
+    <view class="aux-text" style="margin-top:6px;">系统将根据此间隔向教员发送评分提醒。</view>
+  </view>
+
+  <!-- 分配模式 -->
+  <view class="card">
+    <view class="card-title">教员分配模式</view>
+    <view class="score-mode-list">
+      <view wx:for="{{assignModes}}" wx:key="value"
+        class="score-mode-item {{assignMode === item.value ? 'active' : ''}}"
+        bindtap="onModeChange" data-mode="{{item.value}}">
+        <view class="score-mode-radio">
+          <view wx:if="{{assignMode === item.value}}" class="score-mode-radio-inner"></view>
+        </view>
+        <view class="score-mode-info">
+          <view class="score-mode-label">{{item.label}}</view>
+          <view class="score-mode-desc">{{item.desc}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 指定分配表 -->
+  <view wx:if="{{assignMode !== 'all'}}" class="card">
+    <view class="card-title">指定教员-学员分配</view>
+    <view wx:if="{{loading}}" class="trend-skeleton-list">
+      <view class="trend-skeleton-row"></view>
+      <view class="trend-skeleton-row"></view>
+    </view>
+    <view wx:if="{{!loading && instructors.length === 0}}" class="empty-state empty-state-compact">
+      <view class="empty-text">暂无可分配教员</view>
+    </view>
+    <view wx:if="{{!loading && students.length === 0}}" class="empty-state empty-state-compact">
+      <view class="empty-text">暂无可分配学员</view>
+    </view>
+    <view wx:if="{{!loading && instructors.length > 0 && students.length > 0}}" class="score-assign-table">
+      <view class="score-assign-header">
+        <view class="score-assign-cell score-assign-corner">教员 \ 学员</view>
+        <view wx:for="{{students}}" wx:key="userId" class="score-assign-cell score-assign-col-head">
+          <text class="text-ellipsis">{{item.name}}</text>
+        </view>
+      </view>
+      <view wx:for="{{instructors}}" wx:key="userId" wx:for-item="ins" class="score-assign-row">
+        <view class="score-assign-cell score-assign-row-head">
+          <text class="text-ellipsis">{{ins.name}}</text>
+        </view>
+        <view wx:for="{{students}}" wx:key="userId" wx:for-item="stu"
+          class="score-assign-cell score-assign-check"
+          bindtap="toggleAssignment"
+          data-instructor-id="{{ins.userId}}"
+          data-student-id="{{stu.userId}}">
+          <view class="score-check-box {{isAssigned(ins.userId, stu.userId) ? 'checked' : ''}}">
+            <view wx:if="{{isAssigned(ins.userId, stu.userId)}}" class="score-check-inner"></view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 保存 -->
+  <view style="margin-top:12px;">
+    <view class="btn btn-primary btn-block {{saving ? 'btn-disabled' : ''}}" bindtap="saveConfig">
+      {{saving ? '保存中...' : '保存配置'}}
+    </view>
+  </view>
+</view>
