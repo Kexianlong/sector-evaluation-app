@@ -2,11 +2,16 @@
   <!-- 用户信息栏 -->
   <view class="trend-toolbar">
     <view class="trend-user-meta">
-      <text class="trend-user-name">{{userInfo.name || '未登录'}}</text>
-      <text wx:if="{{roleLabel}}" class="identity-badge identity-badge-role">{{roleLabel}}</text>
-      <text wx:if="{{levelLabel}}" class="identity-badge identity-badge-level">{{levelLabel}}</text>
+      <image wx:if="{{avatarUrl}}" class="trend-avatar" src="{{avatarUrl}}" mode="aspectFill" />
+      <view class="trend-user-text">
+        <view class="trend-user-name-row">
+          <text class="trend-user-name">{{userInfo.name || '未登录'}}</text>
+          <text wx:if="{{roleLabel}}" class="identity-badge identity-badge-role">{{roleLabel}}</text>
+          <text wx:if="{{levelLabel}}" class="identity-badge identity-badge-level">{{levelLabel}}</text>
+        </view>
+        <view class="trend-page-note">{{isInstructor ? '全员最近一次评分总览' : '历次评估记录（最近在前）'}}</view>
+      </view>
     </view>
-    <view class="trend-page-note">{{isInstructor ? '全员最近一次评分总览' : '历次评估记录（最近在前）'}}</view>
   </view>
 
   <!-- 扇区切换 -->

@@ -13,13 +13,36 @@
 .trend-user-meta {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   font-size: 13px;
   color: var(--text-primary, #e8ecf1);
 }
 
+.trend-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color, #1e3a5f);
+  flex-shrink: 0;
+  background: var(--bg-tertiary, #1a2d45);
+}
+
+.trend-user-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trend-user-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .trend-user-name {
   font-weight: 600;
+  font-size: 15px;
 }
 
 .trend-student-select {
