@@ -1,0 +1,45 @@
+<view class="container">
+  <!-- 筛选标签 -->
+  <view class="filter-tabs" style="margin-bottom:12px;">
+    <view class="filter-tab {{filter === 'all' ? 'active' : ''}}" bindtap="switchFilter" data-filter="all">全部</view>
+    <view class="filter-tab {{filter === 'icao' ? 'active' : ''}}" bindtap="switchFilter" data-filter="icao">ICAO</view>
+    <view class="filter-tab {{filter === 'medical' ? 'active' : ''}}" bindtap="switchFilter" data-filter="medical">体检</view>
+    <view class="filter-tab {{filter === 'score' ? 'active' : ''}}" bindtap="switchFilter" data-filter="score">评分</view>
+  </view>
+
+  <view wx:if="{{loadError}}" class="trend-inline-alert">
+    <text>{{loadError}}</text>
+    <view class="btn trend-retry-btn" bindtap="loadReminders">重试</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="trend-skeleton-list">
+    <view class="trend-skeleton-row"></view>
+    <view class="trend-skeleton-row"></view>
+    <view class="trend-skeleton-row"></view>
+  </view>
+
+  <view wx:for="{{getFilteredReminders()}}" wx:key="userId" class="card reminder-card">
+    <view class="reminder-header">
+      <text class="reminder-name">{{item.name}}</text>
+      <text wx:if="{{item.department}}" class="reminder-dept">{{item.department}}</text>
+    </view>
+    <view class="reminder-tags">
+      <view wx:if="{{item.icaoExpiry}}" class="expiry-tag expiry-{{item.icaoStatus}}">
+        <text class="reminder-tag-label">ICAO</text>
+        <text>{{item.icaoText}}</text>
+      </view>
+      <view wx:if="{{item.medicalExpiry}}" class="expiry-tag expiry-{{item.medicalStatus}}">
+        <text class="reminder-tag-label">体检</text>
+        <text>{{item.medicalText}}</text>
+      </view>
+      <view wx:if="{{item.pendingScore}}" class="expiry-tag expiry-warning">
+        <text class="reminder-tag-label">待评分</text>
+        <text>{{item.pendingScore}}次</text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{!loading && getFilteredReminders().length === 0}}" class="empty-state">
+    <view class="empty-text">暂无提醒事项</view>
+  </view>
+</view>

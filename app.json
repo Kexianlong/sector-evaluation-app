@@ -12,7 +12,8 @@
     "pages/users/users",
     "pages/instructor-history/instructor-history",
     "pages/profile/profile",
-    "pages/score-config/score-config"
+    "pages/score-config/score-config",
+    "pages/reminders/reminders"
   ],
   "window": {
     "backgroundTextStyle": "light",
