@@ -35,17 +35,19 @@ function buildMockUserMap() {
 Page({
   data: {
     username: 'admin',
-    password: '123456',
+    password: 'hdkg2007',
     loading: false,
     error: '',
     showPasswordModal: false,
     showPasswordForm: false,
-    oldPassword: '123456',
+    oldPassword: 'hdkg2007',
     newPassword: '',
     confirmPassword: '',
     passwordError: '',
     passwordSuccess: '',
-    pendingToken: null
+    pendingToken: null,
+    showProfileModal: false,
+    profileModalUser: null
   },
 
   onLoad() {
@@ -125,7 +127,7 @@ Page({
           app.globalData.token = res.data.token;
           app.globalData.userInfo = loginedUser;
           this.setData({ loading: false });
-          wx.switchTab({ url: homeTabPath(loginedUser.role) });
+          this.checkProfileCompletion(loginedUser);
         }
       } else {
         const errMsg = (res && res.message) || '';
@@ -218,6 +220,32 @@ Page({
     }
   },
 
+  checkProfileCompletion(userInfo) {
+    const skipUntil = wx.getStorageSync('profile_skip_until');
+    if (skipUntil && Date.now() < Number(skipUntil)) {
+      wx.switchTab({ url: homeTabPath(userInfo.role) });
+      return;
+    }
+    const needsCompletion = !userInfo.gender || !userInfo.birthDate;
+    if (needsCompletion) {
+      this.setData({ showProfileModal: true, profileModalUser: userInfo });
+    } else {
+      wx.switchTab({ url: homeTabPath(userInfo.role) });
+    }
+  },
+
+  goToProfileFromModal() {
+    this.setData({ showProfileModal: false });
+    wx.navigateTo({ url: '/pages/profile/profile?firstLogin=1' });
+  },
+
+  skipProfileModal() {
+    wx.setStorageSync('profile_skip_until', Date.now() + 24 * 60 * 60 * 1000);
+    this.setData({ showProfileModal: false });
+    const user = this.data.profileModalUser || app.globalData.userInfo;
+    if (user) wx.switchTab({ url: homeTabPath(user.role) });
+  },
+
   enterMockMode(username) {
     const role = this._inferRole(username);
     const u = (username || '').trim().toLowerCase();
@@ -232,7 +260,7 @@ Page({
     app.enableMockMode();
     this.setData({ loading: false });
     wx.showToast({ title: '离线模式', icon: 'none' });
-    wx.switchTab({ url: homeTabPath(role) });
+    this.checkProfileCompletion(mockUser);
   },
 
   copyWebUrl(e) {
