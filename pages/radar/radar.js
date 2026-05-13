@@ -1,7 +1,5 @@
 const app = getApp();
-const { canPickStudents, isManagerRole, navRoleCaption, normalizeInstructorLevel, getUserInfo } = require('../../utils/roles.js');
-const { MOCK_SECTORS } = require('../../utils/mockData.js');
-
+const { canPickStudents, isManagerRole, navRoleCaption, normalizeInstructorLevel, getUserInfo, getRoleLabel } = require('../../utils/roles.js');
 const { normalizeApiResponse } = require('../../utils/api.js');
 
 function tabBarInit(page) {
@@ -56,28 +54,74 @@ Page({
     // 评分历史
     scoreHistory: [],
     selectedScoreIndex: -1,
-    allStudentScores: []
+    allStudentScores: [],
+    personalReminder: '',
+    scoreComparison: null,
+    showStudentPanel: false,
+    progressTrend: [],
+    rankInfo: null,
+    categoryTrend: [],
+    selectedTrendIndex: -1,
+    selectedTrendRate: 0,
+    selectedTrendRecord: null,
+    selectedTrendItems: []
   },
   _drawing: false,
   _refreshing: false,
   _launchTime: 0,
 
-  async onLoad() {
+  async onLoad(options) {
     let userInfo = getUserInfo();
     const isInstructor = userInfo && canPickStudents(userInfo.role);
-    const roleLabel = navRoleCaption(userInfo);
+    const roleLabel = getRoleLabel(userInfo.role);
     const levelLabel = userInfo && userInfo.role === 'student' ? (userInfo.studentLevel || '') : '';
-    this.setData({ userInfo, isInstructor, roleLabel, levelLabel, myReminders: [] });
 
-    if (isInstructor) this.loadStudents();
+    const externalStudentId = options && options.studentId;
+    const externalSectorId = options && options.sectorId;
+    const externalDate = options && options.date;
+    const externalStudentName = options && options.studentName;
+
+    this.setData({
+      userInfo,
+      isInstructor,
+      roleLabel,
+      levelLabel,
+      myReminders: [],
+      selectedStudent: externalStudentId || '',
+      selectedStudentName: externalStudentName || ''
+    });
+
+    if (isInstructor) await this.loadStudents();
     await this.loadSectors();
+
+    if (externalSectorId) {
+      const sectorExists = this.data.sectors.find(function(s) { return s.id === externalSectorId; });
+      if (sectorExists) {
+        this.setData({ currentSector: externalSectorId });
+        wx.setStorageSync('lastSelectedSectorId', externalSectorId);
+      }
+    }
+
     this.loadMyReminders();
+    this.computePersonalReminder(userInfo);
 
     const targetId = this.data.selectedStudent || (userInfo ? userInfo.userId : '');
     if (targetId) {
-      this.loadAllStudentScores(targetId);
+      await this.loadAllStudentScores(targetId);
+      if (externalDate) {
+        const self = this;
+        wx.nextTick(function() { self._selectScoreByDate(externalDate); });
+      }
     }
     this._launchTime = Date.now();
+  },
+
+  _selectScoreByDate(date) {
+    const history = this.data.scoreHistory || [];
+    const index = history.findIndex(function(h) { return h.date === date; });
+    if (index >= 0) {
+      this.selectScoreHistory(index, false);
+    }
   },
 
   async loadMyReminders() {
@@ -98,16 +142,17 @@ Page({
       if (Array.isArray(res)) sectors = res;
       else if (res && res.data && Array.isArray(res.data)) sectors = res.data;
       const list = sectors.map(s => ({ id: s.sectorId, name: s.name || s.sectorId }));
-      const sector = this.data.currentSector || (list[0] ? list[0].id : '') || '';
+      const lastSector = wx.getStorageSync('lastSelectedSectorId');
+      const sector = lastSector && list.find(s => s.id === lastSector) ? lastSector : (this.data.currentSector || (list[0] ? list[0].id : '') || '');
       this.setData({ sectors: list, currentSector: sector || '' });
       return;
     } catch (e) {
       console.log('[radar] 扇区列表加载失败，使用模拟数据');
     }
-    // 降级：使用 MOCK_SECTORS
-    const mockList = (MOCK_SECTORS || []).map(s => ({ id: s.sectorId, name: s.name || s.sectorId }));
-    const fallback = mockList.length > 0 ? mockList : FALLBACK_SECTORS;
-    this.setData({ sectors: fallback, currentSector: this.data.currentSector || fallback[0].id });
+    const fallback = FALLBACK_SECTORS;
+    const lastSector2 = wx.getStorageSync('lastSelectedSectorId');
+    const defaultSector = lastSector2 && fallback.find(s => s.id === lastSector2) ? lastSector2 : (this.data.currentSector || fallback[0].id);
+    this.setData({ sectors: fallback, currentSector: defaultSector });
   },
 
   async loadStudents() {
@@ -121,8 +166,15 @@ Page({
       else if (res && Array.isArray(res.items)) students = res.items;
       this.setData({ students: students.length > 0 ? students : [] });
     } catch {
-      const { MOCK_STUDENTS } = require('../../utils/mockData.js');
-      this.setData({ students: MOCK_STUDENTS || [] });
+      this.setData({ students: [] });
+    }
+    const lastStudentId = wx.getStorageSync('lastSelectedStudentId');
+    if (lastStudentId && this.data.isInstructor) {
+      const student = this.data.students.find(s => s.userId === lastStudentId);
+      if (student) {
+        this.setData({ selectedStudent: student.userId, selectedStudentName: student.name });
+        this.loadStudentScore(this.data.currentSector, student.userId);
+      }
     }
   },
 
@@ -132,6 +184,28 @@ Page({
     if (!student) return;
     this.setData({ selectedStudent: student.userId, selectedStudentName: student.name });
     this.loadStudentScore(this.data.currentSector, student.userId);
+  },
+
+  openStudentPanel() {
+    this.setData({
+      showStudentPanel: true
+    });
+  },
+
+  closeStudentPanel() {
+    this.setData({ showStudentPanel: false });
+  },
+
+  pickStudent(e) {
+    const studentId = e.currentTarget.dataset.id;
+    const studentName = e.currentTarget.dataset.name;
+    this.setData({
+      selectedStudent: studentId,
+      selectedStudentName: studentName,
+      showStudentPanel: false
+    });
+    wx.setStorageSync('lastSelectedStudentId', studentId);
+    this.loadStudentScore(this.data.currentSector, studentId);
   },
 
   // 加载学员当前扇区的全部评分记录
@@ -144,8 +218,32 @@ Page({
       else if (res && Array.isArray(res.data)) allScores = res.data;
       this.setData({ allStudentScores: allScores });
       this.filterScoresBySector();
+      this._computeRank(studentId);
     } catch (e) {
       this.setData({ allStudentScores: [], scoreHistory: [] });
+    }
+  },
+
+  _computeRank(studentId) {
+    const students = this.data.students;
+    if (!students || students.length === 0) { this.setData({ rankInfo: null }); return; }
+    const allScores = this.data.allStudentScores || [];
+    const sectorId = this.data.currentSector;
+    const studentScores = {};
+    for (let i = 0; i < allScores.length; i++) {
+      const s = allScores[i];
+      if (sectorId && s.sectorId !== sectorId) continue;
+      const sid = s.studentId;
+      if (!studentScores[sid] || new Date(s.date) > new Date(studentScores[sid].date)) {
+        studentScores[sid] = { total: s.totalScore || 0, date: s.date };
+      }
+    }
+    const ranked = Object.keys(studentScores).sort((a, b) => studentScores[b].total - studentScores[a].total);
+    const rank = ranked.indexOf(studentId) + 1;
+    if (rank > 0) {
+      this.setData({ rankInfo: { rank: rank, total: ranked.length } });
+    } else {
+      this.setData({ rankInfo: null });
     }
   },
 
@@ -168,6 +266,11 @@ Page({
       scoreItem._index = j;
     }
     this.setData({ scoreHistory: filtered });
+    const progressTrend = filtered.slice(0, 6).reverse().map(function(s) {
+      return { date: (s.date || '').slice(5, 10), total: s.totalScore || 0 };
+    });
+    this.setData({ progressTrend: progressTrend });
+    setTimeout(() => this.drawProgressTrend(), 300);
     // 默认选中最近一条
     if (filtered.length > 0) {
       this.selectScoreHistory(0, false);
@@ -196,6 +299,50 @@ Page({
   },
 
   // 展示某条评分
+  computeScoreComparison(scoreData) {
+    var history = this.data.scoreHistory;
+    if (!history || history.length < 2 || !scoreData) {
+      this.setData({ scoreComparison: null });
+      return;
+    }
+    var currentIdx = this.data.selectedScoreIndex;
+    var nextIdx = currentIdx + 1;
+    if (nextIdx >= history.length) {
+      this.setData({ scoreComparison: null });
+      return;
+    }
+    var prevScore = history[nextIdx];
+    var currTotal = scoreData.totalScore || 0;
+    var prevTotal = prevScore.totalScore || 0;
+    var totalDiff = currTotal - prevTotal;
+    var totalTrend = totalDiff > 0 ? '↑+' + totalDiff : totalDiff < 0 ? '↓' + totalDiff : '→0';
+    var categories = [];
+    var currScores = scoreData.scores || [];
+    var prevScores = prevScore.scores || [];
+    for (var i = 0; i < currScores.length; i++) {
+      var cat = currScores[i];
+      var prevCat = null;
+      for (var j = 0; j < prevScores.length; j++) {
+        if (prevScores[j].categoryName === cat.categoryName) {
+          prevCat = prevScores[j];
+          break;
+        }
+      }
+      if (prevCat) {
+        var diff = (cat.score || 0) - (prevCat.score || 0);
+        var trend = diff > 0 ? '↑+' + diff : diff < 0 ? '↓' + diff : '→0';
+        categories.push({ name: cat.categoryName, diff: diff, trend: trend });
+      }
+    }
+    this.setData({
+      scoreComparison: {
+        totalDiff: totalDiff,
+        totalTrend: totalTrend,
+        categories: categories
+      }
+    });
+  },
+
   _displayScore(scoreData, loadSectorConfig) {
     const sectorId = this.data.currentSector;
     if (loadSectorConfig !== false && sectorId) this.loadSectorConfigForDisplay(sectorId);
@@ -215,10 +362,11 @@ Page({
         grade: getGrade(total), rawScores: scoreData, showDetailPopup: false,
         selectedCategory: '', detailItems: [], expandedDeductKey: ''
       });
+      this.computeScoreComparison(scoreData);
       const self = this;
       setTimeout(function() { self.retryDrawRadar(3); }, 100);
     } else {
-      this.setData({ categories: [], totalScore: 0, maxScore: 100, grade: getGrade(0), rawScores: null });
+      this.setData({ categories: [], totalScore: 0, maxScore: 100, grade: getGrade(0), rawScores: null, scoreComparison: null });
       this.clearRadar();
     }
   },
@@ -232,10 +380,7 @@ Page({
       const sd = sectorRes.data;
       sectorConfig = sectorRes.categories ? sectorRes : (sd && sd.categories ? sd : null);
     }
-    if (!sectorConfig) {
-      const mockSector = (MOCK_SECTORS || []).find(function(s) { return s.sectorId === sectorId; });
-      if (mockSector) sectorConfig = { categories: mockSector.categories, totalScore: mockSector.totalScore };
-    }
+    
     if (sectorConfig) this.setData({ sectorConfig: sectorConfig });
   },
 
@@ -261,12 +406,41 @@ Page({
   onShow() {
     tabBarInit(this);
     const userInfo = app.globalData.userInfo;
+
+    // 处理从其他页面通过 switchTab 传递的参数
+    const pending = app.globalData.pendingTabParams;
+    if (pending) {
+      app.globalData.pendingTabParams = null;
+      const updates = {};
+      if (pending.studentId) {
+        updates.selectedStudent = pending.studentId;
+        updates.selectedStudentName = pending.studentName || '';
+      }
+      if (pending.sectorId && this.data.sectors && this.data.sectors.length) {
+        const sectorExists = this.data.sectors.find(function(s) { return s.id === pending.sectorId; });
+        if (sectorExists) {
+          updates.currentSector = pending.sectorId;
+          wx.setStorageSync('lastSelectedSectorId', pending.sectorId);
+        }
+      }
+      if (Object.keys(updates).length) {
+        this.setData(updates);
+      }
+      if (pending.studentId) {
+        const self = this;
+        this.loadAllStudentScores(pending.studentId).then(function() {
+          if (pending.date) self._selectScoreByDate(pending.date);
+        });
+      }
+    }
+
     if (userInfo) {
       let _lv2 = '';
       if (userInfo.role === 'student') _lv2 = userInfo.studentLevel || '';
       else if (userInfo.role === 'instructor') _lv2 = normalizeInstructorLevel(userInfo.instructorLevel || userInfo.level);
       const levelLabel = _lv2;
-      this.setData({ roleLabel: navRoleCaption(userInfo), levelLabel });
+      this.setData({ roleLabel: getRoleLabel(userInfo.role), levelLabel });
+      this.computePersonalReminder(userInfo);
     }
     // 防抖 + 启动保护（onLoad 完成后2秒内不重复加载）
     if (this._refreshing) return;
@@ -302,11 +476,19 @@ Page({
   },
 
   switchSector(e) {
-    const sector = e.currentTarget.dataset.sector;
+    const sector = e.currentTarget.dataset.id || e.currentTarget.dataset.sector;
     if (sector === this.data.currentSector) return;
     this.setData({ currentSector: sector });
-    // 从已加载的全部评分中过滤，不需要重新请求
+    wx.setStorageSync('lastSelectedSectorId', sector);
     this.filterScoresBySector();
+  },
+
+  scrollToHistory() {
+    wx.createSelectorQuery().in(this).select('#historySection').boundingClientRect(function(rect) {
+      if (rect) {
+        wx.pageScrollTo({ scrollTop: rect.top + (wx.getWindowInfo ? wx.getWindowInfo().windowHeight : wx.getSystemInfoSync().windowHeight) * 0.15, duration: 300 });
+      }
+    }).exec();
   },
 
   retryDrawRadar(retries) {
@@ -331,6 +513,78 @@ Page({
       });
     };
     wx.nextTick ? wx.nextTick(doQuery) : doQuery();
+  },
+
+  drawProgressTrend() {
+    const data = this.data.progressTrend;
+    if (!data || data.length < 2) return;
+    const query = wx.createSelectorQuery().in(this);
+    query.select('#progressCanvas').fields({ node: true, size: true }).exec((res) => {
+      if (!res || !res[0] || !res[0].node) return;
+      const canvas = res[0].node;
+      const ctx = canvas.getContext('2d');
+      const dpr = wx.getWindowInfo().pixelRatio || 2;
+      canvas.width = res[0].width * dpr;
+      canvas.height = res[0].height * dpr;
+      ctx.scale(dpr, dpr);
+      const w = res[0].width;
+      const h = res[0].height;
+      const padL = 36, padR = 16, padT = 16, padB = 28;
+      const chartW = w - padL - padR;
+      const chartH = h - padT - padB;
+      const scores = data.map(d => d.total);
+      const minS = Math.min(...scores) - 5;
+      const maxS = Math.max(...scores) + 5;
+      const range = maxS - minS || 1;
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = '#1e2d42';
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i <= 4; i++) {
+        const y = padT + (chartH / 4) * i;
+        ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke();
+      }
+      const points = data.map((d, i) => ({
+        x: padL + (chartW / (data.length - 1)) * i,
+        y: padT + chartH - ((d.total - minS) / range) * chartH
+      }));
+      const grad = ctx.createLinearGradient(0, padT, 0, padT + chartH);
+      grad.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
+      grad.addColorStop(1, 'rgba(59, 130, 246, 0.01)');
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, padT + chartH);
+      points.forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.lineTo(points[points.length - 1].x, padT + chartH);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 2;
+      ctx.lineJoin = 'round';
+      points.forEach((p, i) => { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+      ctx.stroke();
+      points.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#3b82f6';
+        ctx.fill();
+        ctx.strokeStyle = '#0f1724';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      });
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '9px sans-serif';
+      ctx.textAlign = 'center';
+      data.forEach((d, i) => {
+        ctx.fillText(d.date, points[i].x, h - 6);
+      });
+      ctx.textAlign = 'right';
+      for (let i = 0; i <= 4; i++) {
+        const val = Math.round(maxS - (range / 4) * i);
+        const y = padT + (chartH / 4) * i;
+        ctx.fillText(val, padL - 4, y + 3);
+      }
+    });
   },
 
   doDrawRadar(canvasRes) {
@@ -418,29 +672,24 @@ Page({
     } catch (err) { console.error('[radar] 绘制失败:', err); }
   },
 
-  showDetail(e) {
-    const index = e.currentTarget.dataset.index;
-    const category = this.data.categories[index];
-    if (!category) { this.setData({ showDetailPopup: true, selectedCategory: '', detailItems: [] }); return; }
-    const catName = category.name;
+  _buildDetailItems(catName, record) {
     let items = [];
     const _scfg = this.data.sectorConfig;
     if (_scfg && _scfg.categories) {
       const _ccat = _scfg.categories.find(function(c) { return c.name === catName; });
       if (_ccat && _ccat.items) items = _ccat.items.map(function(it) { return { id: it.id, name: it.name, maxScore: it.maxScore || 0, deductionTemplate: (it.deductionReason || it.description || '').trim() }; });
     }
-    if (!items.length && category.items && category.items.length) items = category.items.map(function(it) { return { id: it.id || it.itemId, name: it.name, score: it.score, maxScore: it.maxScore || 0, deductionTemplate: (it.deductionReason || it.description || '').trim(), hasScore: 'score' in it }; });
-    if (this.data.rawScores) {
-      if (this.data.rawScores.itemDetails && this.data.rawScores.itemDetails.length) {
+    if (record) {
+      if (record.itemDetails && record.itemDetails.length) {
         items = items.map(it => {
-          const m = this.data.rawScores.itemDetails.find(function(d) { return (it.id && d.itemId === it.id) || d.itemName === it.name; });
+          const m = record.itemDetails.find(function(d) { return (it.id && d.itemId === it.id) || d.itemName === it.name; });
           if (m && 'score' in m) {
             return Object.assign({}, it, { score: m.score, maxScore: m.maxScore !== undefined ? m.maxScore : it.maxScore, deductionReason: (m.reason || '').trim(), hasScore: true });
           }
           return it;
         });
-      } else if (this.data.rawScores.scores) {
-        const sc = this.data.rawScores.scores.find(s => s.categoryName === catName);
+      } else if (record.scores) {
+        const sc = record.scores.find(s => s.categoryName === catName);
         if (sc && sc.items) {
           items = items.map(it => {
             const si = sc.items.find(function(x) { return x.name === it.name; });
@@ -448,6 +697,25 @@ Page({
               return Object.assign({}, it, { score: si.score, maxScore: si.maxScore !== undefined ? si.maxScore : it.maxScore, deductionReason: (si.reason || '').trim(), hasScore: true });
             }
             return it;
+          });
+        } else if (sc) {
+          // 降级：有分类得分但无子项数据时，按分类得分比例分配子项分数
+          const catScore = sc.score || 0;
+          const catMax = sc.maxScore || 0;
+          items = items.map(it => {
+            const itemMax = it.maxScore || 0;
+            let itemScore = itemMax;
+            if (catMax > 0 && itemMax > 0) {
+              itemScore = Math.round(itemMax * catScore / catMax);
+            }
+            itemScore = Math.min(itemScore, itemMax);
+            const isDeducted = itemScore < itemMax;
+            return Object.assign({}, it, {
+              score: itemScore,
+              maxScore: itemMax,
+              hasScore: true,
+              deductionReason: isDeducted ? ((it.deductionTemplate || '该项未获得满分').trim()) : ''
+            });
           });
         }
       }
@@ -457,15 +725,143 @@ Page({
       const isDeducted = base.hasScore && Number(base.maxScore) > 0 && Number(base.score) < Number(base.maxScore);
       return Object.assign({}, base, { isDeducted: isDeducted, deductKey: catName + '_' + (base.id || base.name) });
     });
-    this.setData({ showDetailPopup: true, selectedCategory: catName, detailItems: items, expandedDeductKey: '' });
+    return items;
   },
 
-  hideDetail() { this.setData({ showDetailPopup: false, expandedDeductKey: '' }); },
+  showDetail(e) {
+    let index;
+    // 兼容 bindtap 事件对象和直接传入数字索引
+    if (e && typeof e === 'object' && e.currentTarget) {
+      index = Number(e.currentTarget.dataset.index);
+    } else {
+      index = Number(e);
+    }
+    if (isNaN(index)) return;
+    const category = this.data.categories[index];
+    if (!category) { this.setData({ showDetailPopup: true, selectedCategory: '', detailItems: [], categoryTrend: [], selectedTrendRecord: null, selectedTrendItems: [] }); return; }
+    const catName = category.name;
+    const history = this.data.scoreHistory || [];
+    const catTrend = [];
+    for (let hi = Math.min(history.length - 1, 5); hi >= 0; hi--) {
+      const rec = history[hi];
+      if (!rec || !rec.scores) continue;
+      const catScore = rec.scores.find(function(s) { return s.categoryName === catName; });
+      if (catScore) {
+        catTrend.push({ date: (rec.date || '').slice(5, 10), score: catScore.score || 0, maxScore: catScore.maxScore || 0, recordIndex: hi, fullDate: rec.date });
+      }
+    }
+    // 默认显示最新记录的扣分项
+    const latestRec = catTrend.length > 0 ? history[catTrend[catTrend.length - 1].recordIndex] : (this.data.rawScores || null);
+    const items = this._buildDetailItems(catName, latestRec);
+    this.setData({
+      showDetailPopup: true,
+      selectedCategory: catName,
+      detailItems: items,
+      expandedDeductKey: '',
+      categoryTrend: catTrend,
+      selectedTrendIndex: catTrend.length > 0 ? catTrend.length - 1 : -1,
+      selectedTrendRate: catTrend.length > 0 && catTrend[catTrend.length - 1].maxScore > 0 ? Math.round(catTrend[catTrend.length - 1].score / catTrend[catTrend.length - 1].maxScore * 100) : 0,
+      selectedTrendRecord: latestRec,
+      selectedTrendItems: items
+    });
+  },
+
+  hideDetail() { this.setData({ showDetailPopup: false, expandedDeductKey: '', selectedTrendIndex: -1, selectedTrendRecord: null, selectedTrendItems: [] }); },
   preventHide() { /* stopPropagation */ },
+
+  showTrendDetail(e) {
+    const index = Number(e.currentTarget.dataset.index);
+    const trend = this.data.categoryTrend[index];
+    if (!trend) return;
+    const rate = trend.maxScore > 0 ? Math.round(trend.score / trend.maxScore * 100) : 0;
+    const history = this.data.scoreHistory || [];
+    const record = history[trend.recordIndex];
+    const items = record ? this._buildDetailItems(this.data.selectedCategory, record) : this.data.selectedTrendItems;
+    this.setData({
+      selectedTrendIndex: index,
+      selectedTrendRate: rate,
+      selectedTrendRecord: record,
+      selectedTrendItems: items,
+      expandedDeductKey: ''
+    });
+  },
+
+  // Canvas 雷达图点击 → 角度命中检测，触发指标详情
+  onRadarTap(e) {
+    const categories = this.data.categories;
+    if (!categories || categories.length === 0) return;
+    const touch = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]);
+    if (!touch) return;
+    const self = this;
+    const query = wx.createSelectorQuery().in(this);
+    query.select('#radarCanvas').boundingClientRect().exec(function(res) {
+      const rect = res && res[0];
+      if (!rect) return;
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+      const dx = x - cx;
+      const dy = y - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      // 半径与 doDrawRadar 对齐：min(w,h)/2 - 44
+      const radius = Math.min(rect.width, rect.height) / 2 - 44;
+      // 忽略中心区域和外圈标签区
+      if (dist < 20 || dist > radius + 36) return;
+
+      // 角度：atan2(dx, -dy) 使 0=正上方，与 doDrawRadar 的 -PI/2 起始偏移对齐
+      let angle = Math.atan2(dx, -dy);
+      if (angle < 0) angle += Math.PI * 2;
+
+      const count = categories.length;
+      const angleStep = (Math.PI * 2) / count;
+      const nearestIndex = Math.round(angle / angleStep) % count;
+
+      self.showDetail(nearestIndex);
+    });
+  },
+
+  scrollToRadar() {
+    if (!this.data.rawScores) return;
+    wx.pageScrollTo({ selector: '#radarCanvas', duration: 300 });
+  },
   toggleDeductExpand(e) {
     const key = e.currentTarget.dataset.key;
     const item = this.data.detailItems.find(it => it.deductKey === key);
     if (!item || !item.isDeducted) return;
     this.setData({ expandedDeductKey: this.data.expandedDeductKey === key ? '' : key });
+  },
+
+  computePersonalReminder(userInfo) {
+    if (!userInfo) return;
+    var skipTs = wx.getStorageSync('personalReminderSkip');
+    if (skipTs && Date.now() - Number(skipTs) < 86400000) {
+      this.setData({ personalReminder: '' });
+      return;
+    }
+    var now = new Date();
+    var parts = [];
+    var icaoDate = userInfo.icaoDate;
+    if (icaoDate) {
+      var days = Math.ceil((new Date(icaoDate) - now) / 86400000);
+      if (days < 0) parts.push('ICAO英语已过期' + Math.abs(days) + '天');
+      else if (days <= 30) parts.push('ICAO英语即将到期（剩余' + days + '天）');
+    }
+    var medicalDate = userInfo.medicalDate;
+    if (medicalDate) {
+      var mdays = Math.ceil((new Date(medicalDate) - now) / 86400000);
+      if (mdays < 0) parts.push('体检合格证已过期' + Math.abs(mdays) + '天');
+      else if (mdays <= 30) parts.push('体检合格证即将到期（剩余' + mdays + '天）');
+    }
+    this.setData({ personalReminder: parts.length > 0 ? parts.join('；') : '' });
+  },
+
+  dismissPersonalReminder() {
+    wx.setStorageSync('personalReminderSkip', Date.now());
+    this.setData({ personalReminder: '' });
+  },
+
+  logout() {
+    getApp().logout();
   }
 });

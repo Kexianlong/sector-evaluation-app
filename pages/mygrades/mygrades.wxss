@@ -1,5 +1,98 @@
 /* pages/mygrades/mygrades.wxss */
 
+/* 个人信息卡片 */
+.mygrades-profile-card {
+  margin-bottom: 12px;
+  padding: 14px;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--bg-surface-1, #0f1724), rgba(19, 34, 56, 0.9));
+  border: 1px solid var(--border-subtle, #1a2740);
+}
+
+.mygrades-profile-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.6), rgba(37, 99, 235, 0.15), transparent);
+}
+
+.mygrades-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mygrades-profile-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--bg-surface-2, #162033);
+  flex-shrink: 0;
+  border: 2px solid rgba(37, 99, 235, 0.35);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08), 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.mygrades-profile-avatar-btn {
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mygrades-profile-avatar-btn::after {
+  border: none;
+}
+
+.mygrades-profile-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.mygrades-profile-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mygrades-profile-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary, #e8ecf1);
+  letter-spacing: 0.3px;
+}
+
+.mygrades-profile-age {
+  font-size: 12px;
+  color: var(--text-muted, #4a5d75);
+}
+
+.mygrades-profile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.mygrades-profile-meta-item {
+  font-size: 11px;
+  color: var(--text-secondary, #8a9bb0);
+  background: rgba(22, 45, 69, 0.5);
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(30, 58, 95, 0.5);
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
 /* 筛选栏 */
 .mygrades-filters {
   display: flex;
@@ -171,4 +264,191 @@
     width: 48px;
     font-size: 10px;
   }
+}
+
+/* ==================== 个人统计卡片 ==================== */
+.mygrades-progress-card {
+  margin-bottom: 12px;
+}
+
+.mygrades-progress-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.mygrades-progress-item {
+  flex: 1;
+  text-align: center;
+}
+
+.mygrades-progress-value {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: 'SF Mono', Monaco, monospace;
+}
+
+.mygrades-progress-primary {
+  color: var(--text-primary, #e8ecf1);
+}
+
+.mygrades-progress-green {
+  color: #00d26a;
+}
+
+.mygrades-progress-label {
+  font-size: 12px;
+  color: var(--text-secondary, #8a9bb0);
+  margin-top: 4px;
+}
+
+/* 展开详情区域 */
+.mygrades-expanded-detail {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1rpx solid var(--border-subtle, #1a2740);
+  animation: fadeIn 0.3s ease;
+}
+
+/* ==================== 扇区评分曲线图 ==================== */
+.sector-trend-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.sector-trend-card {
+  padding: 24rpx;
+}
+
+.sector-trend-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.sector-trend-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-primary, #e8ecf1);
+}
+
+.sector-trend-count {
+  font-size: 22rpx;
+  color: var(--text-muted, #4a5d75);
+}
+
+.sector-trend-canvas-wrap {
+  position: relative;
+  width: 100%;
+  margin: 16rpx 0;
+}
+
+.sector-trend-canvas {
+  width: 100%;
+  height: 160px;
+  display: block;
+}
+
+.sector-trend-canvas-cover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+
+.sector-trend-summary {
+  display: flex;
+  justify-content: space-around;
+  padding-top: 16rpx;
+  border-top: 1rpx solid var(--border-subtle, #1a2740);
+  margin-top: 8rpx;
+}
+
+.sector-trend-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sector-trend-stat .stat-label {
+  font-size: 22rpx;
+  color: var(--text-muted, #4a5d75);
+  margin-bottom: 4rpx;
+}
+
+.sector-trend-stat .stat-value {
+  font-size: 28rpx;
+  font-weight: 700;
+  font-family: 'SF Mono', Monaco, monospace;
+  color: var(--text-primary, #e8ecf1);
+}
+
+.sector-trend-stat .stat-high {
+  color: #22c55e;
+}
+
+.sector-trend-stat .stat-low {
+  color: #ef4444;
+}
+
+/* 日期标签 */
+.sector-trend-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  padding: 16rpx 0 8rpx;
+  border-top: 1rpx solid var(--border-subtle, #1a2740);
+  margin-top: 8rpx;
+}
+
+.sector-trend-date-tag {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8rpx 16rpx;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1rpx solid rgba(59, 130, 246, 0.2);
+  border-radius: 8rpx;
+  min-width: 80rpx;
+}
+
+.sector-trend-date-text {
+  font-size: 20rpx;
+  color: var(--text-muted, #4a5d75);
+}
+
+.sector-trend-date-score {
+  font-size: 24rpx;
+  color: #3b82f6;
+  font-weight: 600;
+  font-family: 'SF Mono', Monaco, monospace;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 退出登录按钮 */
+.manager-logout-btn {
+  width: 100%;
+  margin: 16px 0;
+  padding: 12px 16px;
+  text-align: center;
+  color: var(--alert-red, #ff4d4f);
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 77, 79, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 77, 79, 0.05);
+  letter-spacing: 0.5px;
+}
+
+.manager-logout-btn:active {
+  background: rgba(255, 77, 79, 0.1);
 }

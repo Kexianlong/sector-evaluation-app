@@ -1,61 +1,14 @@
 const app = getApp();
-const { isManagerRole, navRoleCaption, normalizeInstructorLevel, getUserInfo } = require('../../utils/roles.js');
-const { MOCK_SECTORS } = require('../../utils/mockData.js');
-
-const { normalizeApiResponse } = require('../../utils/api.js');
+const { isManagerRole, navRoleCaption, normalizeInstructorLevel, getUserInfo, getRoleLabel } = require('../../utils/roles.js');
+const { normalizeApiResponse, normalizeArrayPayload, normalizeObjectPayload } = require('../../utils/api.js');
 
 const STUDENT_LEVEL_OPTIONS = [
-  '初阶一段',
-  '初阶二段',
-  '初阶三段',
-  '中阶一段',
-  '中阶二段',
-  '中阶三段',
-  '高阶一段',
-  '高阶二段',
-  '高阶三段'
+  '初阶一段', '初阶二段', '初阶三段',
+  '中阶一段', '中阶二段', '中阶三段',
+  '高阶一段', '高阶二段', '高阶三段'
 ];
 
 const CHART_COLORS = ['#60a5fa', '#00d26a', '#ffaa00', '#ff4d4f', '#a78bfa', '#f472b6', '#22d3ee', '#fb923c'];
-
-function normalizeArrayPayload(payload) {
-  if (!payload) return [];
-  if (typeof payload === 'string') {
-    try { payload = JSON.parse(payload); } catch (e) { return []; }
-  }
-  if (payload.body) {
-    let body = payload.body;
-    if (typeof body === 'string') {
-      try { body = JSON.parse(body); } catch (e) { body = null; }
-    }
-    if (body) {
-      if (Array.isArray(body)) return body;
-      if (Array.isArray(body.items)) return body.items;
-      if (body.success && Array.isArray(body.data)) return body.data;
-      if (body.data && Array.isArray(body.data.items)) return body.data.items;
-      if (body.data && Array.isArray(body.data.scores)) return body.data.scores;
-      if (Array.isArray(body.data)) return body.data;
-    }
-  }
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload.items)) return payload.items;
-  if (payload.success && Array.isArray(payload.data)) return payload.data;
-  if (payload.data && Array.isArray(payload.data.items)) return payload.data.items;
-  if (payload.data && Array.isArray(payload.data.scores)) return payload.data.scores;
-  if (Array.isArray(payload.data)) return payload.data;
-  return [];
-}
-
-function normalizeObjectPayload(payload) {
-  if (!payload) return null;
-  if (payload.success && payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data)) {
-    return payload.data;
-  }
-  if (typeof payload === 'object' && !Array.isArray(payload)) {
-    return payload;
-  }
-  return null;
-}
 
 function toPct(score, maxScore) {
   const max = Number(maxScore || 0);
@@ -108,7 +61,7 @@ function ensureManager(page) {
   }
   page.setData({
     userInfo,
-    roleLabel: navRoleCaption(userInfo),
+    roleLabel: getRoleLabel(userInfo.role),
     levelLabel: normalizeInstructorLevel(userInfo && (userInfo.instructorLevel || userInfo.level))
   });
   return userInfo;
@@ -151,6 +104,7 @@ Page({
     analysisRows: [],
     indicatorOverview: [],
     summaryStats: { groupAvg: '0.0', highest: '0.0', lowest: '0.0', studentCount: 0, recordCount: 0 },
+    attentionStudents: [],
     lineDates: [],
     lineSeries: [],
     legendItems: [],
@@ -161,7 +115,8 @@ Page({
     showStudentPicker: false,
     pickerStudents: [],
     showIndicatorPicker: false,
-    pickerIndicators: []
+    pickerIndicators: [],
+    selectedIndicator: null
   },
 
   _drawing: false,
@@ -245,21 +200,14 @@ Page({
         return;
       }
     } catch (e) {
-      console.log('[analysis] 扇区列表加载失败，使用模拟数据');
+      console.log('[analysis] 扇区列表加载失败', e);
     }
-    // 降级：使用 MOCK_SECTORS
-    const fallback = (MOCK_SECTORS || []).map(s => ({
-      sectorId: s.sectorId,
-      name: s.name || s.sectorId
-    }));
-    if (fallback.length > 0) {
-      this.setData({
-        sectors: fallback,
-        sectorNames: fallback.map(item => item.name),
-        sectorIndex: 0,
-        currentSector: fallback[0].sectorId
-      });
-    }
+    this.setData({
+      sectors: [],
+      sectorNames: [],
+      sectorIndex: 0,
+      currentSector: ''
+    });
   },
 
   async loadSectorDetail(sectorId) {
@@ -290,23 +238,7 @@ Page({
         selectedIndicatorNames
       });
     } catch (error) {
-      console.log('[analysis] 扇区详情加载失败，使用模拟数据');
-    }
-    // 降级：从 MOCK_SECTORS 查找
-    const mockSector = (MOCK_SECTORS || []).find(s => s.sectorId === sectorId);
-    if (mockSector && mockSector.categories) {
-      const indicatorOptions = mockSector.categories.map((item) => ({
-        id: item.id || item.name,
-        name: item.name || item.id,
-        maxScore: Number(item.maxScore || 0)
-      })).filter((item) => item.id);
-      const allowed = new Set(indicatorOptions.map((item) => item.id));
-      const selectedIndicators = this.data.selectedIndicators.filter((id) => allowed.has(id));
-      const selectedIndicatorNames = indicatorOptions
-        .filter((item) => selectedIndicators.includes(item.id))
-        .map((item) => item.name);
-      this.setData({ indicatorOptions, selectedIndicators, selectedIndicatorNames });
-    } else {
+      console.log('[analysis] 扇区详情加载失败', error);
       this.setData({
         indicatorOptions: [],
         selectedIndicators: [],
@@ -600,10 +532,13 @@ Page({
 
     const legendItems = this.computeLegendItems(nextChartType, this.data.compareView, studentSummary, indicatorOverview, lineSeries);
 
+    const attentionStudents = this._computeAttentionStudents(studentSummary);
+
     this.setData({
       analysisRows: studentSummary,
       indicatorOverview,
       summaryStats,
+      attentionStudents,
       lineDates,
       lineSeries,
       legendItems,
@@ -652,6 +587,20 @@ Page({
 
   onSectorChange(e) {
     const sectorIndex = Number(e.detail.value || 0);
+    const sector = this.data.sectors[sectorIndex];
+    if (!sector) return;
+    this.setData({
+      sectorIndex,
+      currentSector: sector.sectorId,
+      loadError: ''
+    }, async () => {
+      await this.loadSectorDetail(sector.sectorId);
+      await this.loadRecords();
+    });
+  },
+
+  onSectorTabTap(e) {
+    const sectorIndex = Number(e.currentTarget.dataset.index || 0);
     const sector = this.data.sectors[sectorIndex];
     if (!sector) return;
     this.setData({
@@ -781,6 +730,39 @@ Page({
 
   onRetryLoad() {
     this.loadRecords();
+  },
+
+  _computeAttentionStudents(studentSummary) {
+    const result = [];
+    if (!studentSummary || studentSummary.length === 0) return result;
+    for (let i = 0; i < studentSummary.length; i++) {
+      const s = studentSummary[i];
+      if (s.trendDir === 'down' && s.rows && s.rows.length >= 3) {
+        let consecutive = 0;
+        const sorted = (s.rows || []).slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+        for (let j = 0; j < sorted.length - 1; j++) {
+          if ((sorted[j + 1].totalScore || 0) > (sorted[j].totalScore || 0)) consecutive++;
+          else break;
+        }
+        if (consecutive >= 2) {
+          result.push({ studentId: s.studentId, studentName: s.studentName, type: 'decline', reason: '连续' + (consecutive + 1) + '次评分下降' });
+        }
+      }
+      if (s.weaknesses && s.weaknesses.length >= 2) {
+        const alreadyAdded = result.find(r => r.studentId === s.studentId);
+        if (!alreadyAdded) {
+          result.push({ studentId: s.studentId, studentName: s.studentName, type: 'weak', reason: s.weaknesses.length + '个维度待提升' });
+        }
+      }
+    }
+    return result.slice(0, 5);
+  },
+
+  goToStudentProfile(e) {
+    const studentId = e.currentTarget.dataset.id;
+    if (studentId) {
+      wx.navigateTo({ url: '/pages/student-profile/student-profile?studentId=' + studentId });
+    }
   },
 
   drawChart(retryCount) {
@@ -1054,4 +1036,140 @@ Page({
         const x = padding.left + index * xStep;
         const y = padding.top + chartHeight * (1 - value / 100);
         ctx.beginPath();
-        ctx.arc(x
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = line.color;
+        ctx.fill();
+      });
+    });
+  },
+
+  onShareAppMessage() {
+    return {
+      title: '扇区能力评估 - 数据分析',
+      path: '/pages/analysis/analysis'
+    };
+  },
+
+  onCanvasTouch(e) {
+    const geom = this._chartGeometry;
+    if (!geom || !geom.padding || !geom.labels || !geom.values) return;
+    
+    const touch = e.touches && e.touches[0];
+    if (!touch) return;
+    
+    const query = wx.createSelectorQuery().in(this);
+    query.select('#analysisChartCanvas').boundingClientRect((rect) => {
+      if (!rect) return;
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      
+      if (geom.type === 'bar') {
+        const padding = geom.padding;
+        const groupWidth = geom.groupWidth;
+        
+        for (let i = 0; i < geom.labels.length; i++) {
+          const label = geom.labels[i];
+          const value = geom.values[i];
+          const barX = padding.left + i * groupWidth;
+          const barWidth = Math.min(32, groupWidth * 0.56);
+          
+          if (x >= barX && x <= barX + barWidth && y >= padding.top && y <= padding.top + (padding.bottom - padding.top)) {
+            this.showIndicatorDetail(i, value);
+            return;
+          }
+        }
+      }
+    }).exec();
+  },
+
+  showIndicatorDetail(index, value) {
+    const chartType = this.data.chartType;
+    const compareView = this.data.compareView;
+    
+    let indicatorId, indicatorName, indicatorDescription, maxScore, groupAvg;
+    
+    if (compareView === 'indicator' && this.data.indicatorOverview[index]) {
+      const item = this.data.indicatorOverview[index];
+      indicatorId = item.id;
+      indicatorName = item.name;
+      indicatorDescription = item.description || '';
+      maxScore = item.maxScore || 0;
+      groupAvg = parseFloat(item.avgStr) || 0;
+    } else if (compareView === 'student' && this.data.analysisRows[index]) {
+      const student = this.data.analysisRows[index];
+      const effectiveIndicators = this.getEffectiveIndicators();
+      const mainIndicator = effectiveIndicators[index] || effectiveIndicators[0] || {};
+      indicatorId = mainIndicator.id;
+      indicatorName = mainIndicator.name || student.studentName;
+      indicatorDescription = mainIndicator.description || ('学员 ' + student.studentName + ' 的综合得分');
+      maxScore = mainIndicator.maxScore || 100;
+      groupAvg = parseFloat(student.overallStr) || 0;
+    } else {
+      return;
+    }
+    
+    const effectiveIndicators = this.getEffectiveIndicators();
+    const indicator = effectiveIndicators.find(ind => ind.id === indicatorId) || {};
+    indicatorDescription = indicatorDescription || indicator.description || '';
+    maxScore = maxScore || indicator.maxScore || 0;
+    
+    const records = this.data.records.filter(r => {
+      if (compareView === 'student') {
+        return this.data.analysisRows[index] && r.studentId === this.data.analysisRows[index].studentId;
+      } else {
+        return r.scores && r.scores.some(s => s.categoryId === indicatorId || s.id === indicatorId);
+      }
+    }).sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    const history = records.slice(-10).map((record, idx) => {
+      let scoreValue = 0;
+      if (compareView === 'student') {
+        const studentScore = record.scores && record.scores.find(s => s.categoryId === indicatorId || s.id === indicatorId);
+        scoreValue = studentScore ? toPct(studentScore.score, studentScore.maxScore || maxScore) : 0;
+      } else {
+        scoreValue = toPct(record.totalScore, 100);
+      }
+      const color = scoreValue >= 90 ? '#00d26a' : (scoreValue >= 75 ? '#ffaa00' : '#60a5fa');
+      return {
+        date: record.date,
+        dateStr: record.date ? record.date.slice(5) : '',
+        value: Math.round(scoreValue),
+        height: Math.max(4, scoreValue),
+        color
+      };
+    });
+    
+    const compareValue = compareView === 'student' 
+      ? this.data.analysisRows[index] 
+      : this.data.analysisRows.find(s => 
+          s.indicatorAvg && s.indicatorAvg.some(ind => ind.id === indicatorId)
+        );
+    const currentColor = compareValue 
+      ? (compareView === 'student' ? '#60a5fa' : '#00d26a')
+      : '#8a9bb0';
+    
+    this.setData({
+      selectedIndicator: {
+        id: indicatorId,
+        name: indicatorName,
+        description: indicatorDescription,
+        maxScore,
+        value: Math.round(value || 0),
+        groupAvg: groupAvg.toFixed(1),
+        history,
+        color: currentColor
+      }
+    });
+    
+    if (this._chartGeometry) {
+      this._chartGeometry.selectedIndex = index;
+    }
+  },
+
+  clearIndicatorSelection() {
+    this.setData({ selectedIndicator: null });
+    if (this._chartGeometry) {
+      this._chartGeometry.selectedIndex = null;
+    }
+  }
+});

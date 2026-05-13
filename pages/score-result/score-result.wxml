@@ -1,0 +1,40 @@
+<view class="page-container">
+  <!-- 成功提示 -->
+  <view class="result-header fade-transition">
+    <view class="result-icon">🎉</view>
+    <view class="result-title">评分提交成功</view>
+  </view>
+
+  <!-- 分数展示 -->
+  <view class="score-display card mb-12">
+    <view class="score-value">{{totalScore}}</view>
+    <view class="score-grade" style="color:{{gradeColor}};">{{grade}}</view>
+    <view class="score-comparison" wx:if="{{comparison}}">
+      <text class="{{comparison.diff > 0 ? 'text-green' : comparison.diff < 0 ? 'text-alert' : 'text-secondary'}}">
+        {{comparison.trend}}
+      </text>
+      <text class="text-secondary text-13">比上次</text>
+    </view>
+  </view>
+
+  <!-- 雷达图预览 -->
+  <view class="card mb-12" wx:if="{{categories.length}}">
+    <view class="card-title">能力雷达图</view>
+    <canvas type="2d" id="resultRadar" class="chart-canvas" style="width:100%;height:300px;"></canvas>
+  </view>
+
+  <!-- 扣分项汇总 -->
+  <view class="card mb-12" wx:if="{{deductionItems.length}}">
+    <view class="card-title">扣分项汇总</view>
+    <view wx:for="{{deductionItems}}" wx:key="name" class="deduction-item">
+      <text class="text-primary">{{item.name}}</text>
+      <text class="text-alert">-{{item.deduct}}分</text>
+    </view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="result-actions">
+    <view class="btn btn-secondary" bindtap="goBack">返回</view>
+    <view class="btn btn-primary" bindtap="continueScoring">继续评分</view>
+  </view>
+</view>

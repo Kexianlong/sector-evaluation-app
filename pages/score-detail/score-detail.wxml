@@ -1,0 +1,100 @@
+<view class="container">
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="trend-loading-state">加载详情中...</view>
+
+  <!-- 错误 -->
+  <view wx:if="{{loadError}}" class="trend-inline-alert">
+    <text>{{loadError}}</text>
+    <view bindtap="loadDetail" data-id="{{scoreId}}" class="trend-retry-btn">重试</view>
+  </view>
+
+  <block wx:if="{{!loading && record}}">
+    <!-- 头部信息 -->
+    <view class="card score-detail-header">
+      <view class="score-detail-top">
+        <view class="score-detail-meta">
+          <text class="score-detail-student" catchtap="goToProfile" data-userid="{{record.studentId}}">{{record.studentName || '未知学员'}}</text>
+          <text class="sector-tag">{{record.sectorName || record.sectorId}}</text>
+        </view>
+        <text class="score-detail-grade" style="color:{{record.grade.color}};">{{record.grade.text}}</text>
+      </view>
+      <view class="score-detail-score-row">
+        <text class="score-detail-score">{{record.totalScore || 0}}</text>
+        <text class="score-detail-max">/ {{record.maxTotal || 100}} 分</text>
+      </view>
+      <view class="score-detail-info">
+        <text class="score-detail-info-item">日期：{{record.date}}</text>
+        <text wx:if="{{record.instructorName}}" class="score-detail-info-item" catchtap="goToProfile" data-userid="{{record.instructorId}}">教员：{{record.instructorName}}</text>
+        <text wx:if="{{record.editCount !== undefined}}" class="score-detail-info-item">已修改：{{record.editCount || 0}}/1 次</text>
+      </view>
+    </view>
+
+    <!-- 雷达图 -->
+    <view class="card radar-chart-card" wx:if="{{categories.length > 0}}">
+      <view class="card-title">能力雷达图</view>
+      <canvas type="2d" id="detailRadar" style="width:100%;height:280px;"></canvas>
+    </view>
+
+    <!-- 分类得分明细 -->
+    <view class="card" wx:if="{{categories.length > 0}}">
+      <view class="card-title">各项得分明细</view>
+      <view wx:for="{{categories}}" wx:key="categoryId" wx:for-item="cat" class="score-detail-cat">
+        <!-- 分类头部 -->
+        <view class="score-detail-cat-header" bindtap="toggleCatExpand" data-cat-id="{{cat.categoryId}}">
+          <view class="score-detail-cat-left">
+            <text class="score-detail-cat-name">{{cat.categoryName}}</text>
+            <text class="score-detail-cat-max">满分 {{cat.maxScore}} 分</text>
+          </view>
+          <view class="score-detail-cat-right">
+            <view class="progress-bar" style="width:60px;">
+              <view class="progress-fill" style="width:{{cat.catPct}}%;background:{{cat.barColor}};"></view>
+            </view>
+            <text class="score-badge {{cat.catPct >= 90 ? 'score-excellent' : cat.catPct >= 75 ? 'score-good' : 'score-pass'}}">{{cat.score || 0}}</text>
+            <text class="score-detail-cat-arrow">{{expandedCats[cat.categoryId] ? '▼' : '▶'}}</text>
+          </view>
+        </view>
+
+        <!-- 分类下的评分项 -->
+        <view wx:if="{{expandedCats[cat.categoryId]}}" class="score-detail-items">
+          <view wx:for="{{cat.detailItems}}" wx:key="deductKey" wx:for-item="it" class="score-detail-item {{it.isDeducted ? 'score-detail-item--danger' : ''}}">
+            <view class="radar-detail-row">
+              <view class="radar-detail-left">
+                <view class="radar-detail-name">{{it.name}}</view>
+                <view wx:if="{{it.deductionTemplate && !it.isDeducted}}" class="radar-detail-desc">{{it.deductionTemplate}}</view>
+                <view wx:if="{{it.isDeducted}}" class="radar-detail-deduct">扣 {{it.maxScore - it.score}} 分（{{it.score}}/{{it.maxScore}}）</view>
+              </view>
+              <view class="radar-detail-right">
+                <text wx:if="{{it.hasScore}}" class="radar-detail-score" style="{{it.isDeducted ? 'color:var(--alert-red);' : 'color:var(--radar-green);'}}">{{it.score}} / {{it.maxScore}}</text>
+                <text wx:else class="radar-detail-score" style="color:var(--text-muted);">满分 {{it.maxScore || 0}}</text>
+              </view>
+            </view>
+            <view wx:if="{{it.deductionReason}}" class="score-detail-reason">
+              <text style="color:var(--danger);font-weight:700;margin-right:4px;">[扣分说明]</text>{{it.deductionReason}}
+            </view>
+            <view wx:if="{{it.isDeducted && !it.deductionReason}}" class="score-detail-reason score-detail-reason-empty">
+              <text style="color:var(--danger);font-weight:700;margin-right:4px;">[扣分说明]</text>未填写扣分原因
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 扣分项汇总 -->
+    <view class="card" wx:if="{{record._deductItems && record._deductItems.length > 0}}">
+      <view class="card-title">扣分项汇总</view>
+      <view wx:for="{{record._deductItems}}" wx:key="itemId" wx:for-item="d" class="trend-overview-deduct-item overview-deduct-item">
+        <view class="trend-overview-deduct-name">{{d.itemName}}</view>
+        <view class="trend-overview-deduct-meta">扣 {{d.deductVal}} 分（{{d.score}}/{{d.maxScore}}）</view>
+        <view wx:if="{{d.reason}}" class="trend-overview-deduct-reason overview-deduct-reason">{{d.reason}}</view>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="score-detail-actions">
+      <view class="btn btn-secondary" bindtap="goBack">返回</view>
+      <view wx:if="{{isAdmin || isOwner}}" class="btn btn-danger" bindtap="onDeleteTap">删除记录</view>
+    </view>
+
+    <view style="height:40px;"></view>
+  </block>
+</view>

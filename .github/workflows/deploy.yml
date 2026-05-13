@@ -1,0 +1,51 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  check:
+    name: Code Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check JSON syntax
+        run: |
+          find . -maxdepth 1 -name "*.json" -exec python3 -m json.tool {} \; > /dev/null
+          echo "✅ All JSON files are valid"
+
+      - name: Check sensitive files not tracked
+        run: |
+          if git ls-files | grep -q "^\.env\.local$"; then
+            echo "❌ .env.local should not be tracked by git"
+            exit 1
+          fi
+          if git ls-files | grep -q "^\.codebuddy/"; then
+            echo "❌ .codebuddy/ should not be tracked by git"
+            exit 1
+          fi
+          if git ls-files | grep -q "^project\.private\.config\.json$"; then
+            echo "❌ project.private.config.json should not be tracked by git"
+            exit 1
+          fi
+          echo "✅ No sensitive files tracked"
+
+      - name: Notify
+        run: |
+          echo "================================================"
+          echo "  微信小程序项目检查完成"
+          echo "================================================"
+          echo ""
+          echo "⚠️  注意：微信小程序无法通过 GitHub Actions 自动上传"
+          echo ""
+          echo "请使用以下步骤完成部署："
+          echo "  1. 打开微信开发者工具"
+          echo "  2. 点击「上传」按钮"
+          echo "  3. 登录微信公众平台提交审核"
+          echo ""
+          echo "================================================"

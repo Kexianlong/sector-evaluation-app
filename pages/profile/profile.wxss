@@ -101,6 +101,28 @@
   background: var(--bg-tertiary, #1a2d45);
 }
 
+.profile-avatar-options {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+.profile-avatar-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.profile-avatar-opt-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color, #1e3a5f);
+}
+.profile-avatar-opt-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
 .profile-edit-actions {
   margin-top: 16px;
 }
@@ -118,4 +140,89 @@ input.input, picker .input {
   color: var(--text-primary, #e8ecf1);
   display: flex;
   align-items: center;
+}
+
+/* ==================== 提醒卡片 ==================== */
+.reminder-summary-card {
+  background: rgba(255, 77, 79, 0.04);
+  border-color: rgba(255, 77, 79, 0.18);
+}
+.reminder-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+.reminder-item {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--bg-tertiary, #1a2d45);
+}
+.reminder-item:last-child {
+  border-bottom: none;
+}
+.reminder-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.expiry-tag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 3px;
+  line-height: 1.6;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.expiry-warning {
+  color: #ffaa00;
+  background: rgba(255, 170, 0, 0.1);
+  border: 1px solid rgba(255, 170, 0, 0.3);
+}
+.expiry-expired {
+  color: #ff4d4f;
+  background: rgba(255, 77, 79, 0.1);
+  border: 1px solid rgba(255, 77, 79, 0.3);
+}
+
+/* ==================== 标签 ==================== */
+.profile-tag-blue {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* ==================== 首次登录提示横幅 ==================== */
+.profile-firstlogin-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  background: rgba(30, 58, 95, 0.6);
+  border: 1px solid var(--border-color, #1e3a5f);
+  border-radius: 8px;
+}
+
+.profile-firstlogin-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.profile-firstlogin-text {
+  font-size: 13px;
+  color: var(--text-secondary, #8a9bb0);
+  line-height: 1.5;
+}
+
+/* ==================== 管理操作 ==================== */
+.profile-manage-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }

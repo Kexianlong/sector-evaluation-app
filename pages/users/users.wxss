@@ -1,6 +1,69 @@
 /* pages/users/users.wxss */
 
-/* ==================== 用户列表行 ==================== */
+/* ==================== 用户紧凑行 ==================== */
+.user-compact-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  gap: 12px;
+}
+
+.user-compact-row--active {
+  opacity: 0.7;
+}
+
+.user-compact-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--bg-tertiary, #1a2d45);
+  border: 1px solid var(--border-color, #1e3a5f);
+}
+
+.user-compact-avatar-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+
+.user-compact-main {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.user-compact-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.user-compact-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, #e8ecf1);
+}
+
+.user-compact-meta {
+  font-size: 12px;
+  color: var(--text-secondary, #8a9bb0);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-compact-arrow {
+  font-size: 18px;
+  color: var(--text-muted, #4a5d75);
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+/* ==================== 旧用户列表行（保留兼容） ==================== */
 .list-item-row {
   display: flex;
   justify-content: space-between;
@@ -38,6 +101,18 @@
   border: 1px solid rgba(255, 170, 0, 0.3);
   border-radius: 3px;
   background: rgba(255, 170, 0, 0.1);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.tag-alert {
+  display: inline-block;
+  font-size: 11px;
+  color: var(--alert-red, #ff4d4f);
+  padding: 0 6px;
+  border: 1px solid rgba(255, 77, 79, 0.3);
+  border-radius: 3px;
+  background: rgba(255, 77, 79, 0.1);
   white-space: nowrap;
   line-height: 1;
 }

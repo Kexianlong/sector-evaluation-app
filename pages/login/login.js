@@ -1,53 +1,49 @@
 const app = getApp();
 const { isManagerRole, isInstructorRole } = require('../../utils/roles.js');
-const { mockUsers } = require('../../utils/mockData.js');
 const { normalizeApiResponse } = require('../../utils/api.js');
 
 function homeTabPath(role) {
   if (isManagerRole(role)) return '/pages/overview/overview';
-  if (isInstructorRole(role)) return '/pages/trend/trend';
   return '/pages/radar/radar';
-}
-
-function inferMockRoleFromUsername(username) {
-  const u = (username || '').trim().toLowerCase();
-  if (u === 'admin') return 'center_director';
-  if (u === 'students' || u === 'student') return 'student';
-  if (u === 'instructor') return 'instructor';
-  return 'student';
-}
-
-const MOCK_DISPLAY_NAMES = {
-  admin: '系统管理员',
-  students: '学员',
-  instructor: '教员',
-};
-
-function buildMockUserMap() {
-  const map = {};
-  mockUsers.forEach(u => {
-    map[u.username] = u;
-    if (u.username === 'students') map['student'] = u;
-  });
-  return map;
 }
 
 Page({
   data: {
-    username: 'admin',
-    password: 'hdkg2007',
+    username: '',
+    password: '',
     loading: false,
     error: '',
     showPasswordModal: false,
     showPasswordForm: false,
-    oldPassword: 'hdkg2007',
+    oldPassword: '',
     newPassword: '',
     confirmPassword: '',
     passwordError: '',
     passwordSuccess: '',
     pendingToken: null,
     showProfileModal: false,
-    profileModalUser: null
+    profileGender: '',
+    profileBirthDate: '',
+    profileGroupEntryDate: '',
+    profileIsStudent: false,
+    profileIsInstructor: false,
+    profileError: '',
+    _profileUser: null,
+    usingDefaultPassword: false,
+    profilePhone: '',
+    profilePhotoUrl: '',
+    profileIcaoDate: '',
+    profileMedicalDate: '',
+    profileResponsibleStudents: [],
+    profileResponsibleStudentsInfo: [],
+    profileResponsibleInstructor: '',
+    profileResponsibleInstructorLabel: '',
+    profileResponsibleStudentsLabel: '',
+    profileResponsibleInstructorIndex: 0,
+    instructorStudentList: [],
+    studentInstructorList: [],
+    allStudents: [],
+    allInstructors: []
   },
 
   onLoad() {
@@ -81,10 +77,6 @@ Page({
     this.setData({ confirmPassword: e.detail.value });
   },
 
-  _inferRole(username) {
-    return inferMockRoleFromUsername(username);
-  },
-
   async handleLogin() {
     if (this.data.loading) return;
     const username = this.data.username;
@@ -107,55 +99,49 @@ Page({
       if (res && res.success && res.data && res.data.token) {
         const loginedUser = res.data.userInfo || res.data.user || {};
         const requirePasswordChange = (res.data && res.data.requirePasswordChange);
+        wx.setStorageSync('token', res.data.token);
         wx.setStorageSync('userInfo', loginedUser);
+        app.globalData.token = res.data.token;
         app.globalData.userInfo = loginedUser;
-        if (requirePasswordChange) {
-          this.setData({
-            showPasswordModal: true,
-            showPasswordForm: false,
-            pendingToken: res.data.token,
-            oldPassword: password,
-            newPassword: '',
-            confirmPassword: '',
-            passwordError: '',
-            passwordSuccess: '',
-            loading: false
-          });
-        } else {
-          wx.setStorageSync('token', res.data.token);
-          wx.setStorageSync('userInfo', loginedUser);
-          app.globalData.token = res.data.token;
-          app.globalData.userInfo = loginedUser;
-          this.setData({ loading: false });
-          this.checkProfileCompletion(loginedUser);
-        }
+        this.setData({
+          loading: false,
+          usingDefaultPassword: !!requirePasswordChange,
+          pendingToken: res.data.token,
+          oldPassword: password,
+          newPassword: '',
+          confirmPassword: '',
+          passwordError: '',
+          passwordSuccess: ''
+        });
+        this.checkProfileCompletion(loginedUser);
       } else {
         const errMsg = (res && res.message) || '';
-        // 已放单拦截
+        const errCode = (res && res.code) || '';
         if (errMsg && errMsg.indexOf('已经放单') !== -1) {
           this.setData({ error: errMsg, loading: false });
           return;
         }
-        // 后端明确返回了业务失败（success === false 且带有 message）：说明后端是在线的，不要降级到 mock
+        if (errCode === 'FORBIDDEN') {
+          this.setData({ error: errMsg || '账号无权限', loading: false });
+          return;
+        }
         if (res && res.success === false && errMsg) {
+          if (errCode === 'UNAUTHORIZED' || (errMsg.indexOf('Unauthorized') !== -1 || errMsg.indexOf('401') !== -1)) {
+            this.setData({ error: errMsg || '账号或密码错误，请检查后重试', loading: false });
+            return;
+          }
           this.setData({ error: errMsg, loading: false });
           return;
         }
-        // 认证类错误关键词兜底
-        if (errMsg && (errMsg.indexOf('登录') !== -1 || errMsg.indexOf('密码') !== -1 || errMsg.indexOf('认证') !== -1 || errMsg.indexOf('Unauthorized') !== -1 || errMsg.indexOf('401') !== -1)) {
-          this.setData({ error: errMsg || '登录失败，请检查账号密码', loading: false });
-          return;
-        }
-        // 其余情况（后端不可用、网络错误等）降级到离线 mock 模式
-        this.enterMockMode(username);
+        this.setData({ error: '登录失败，请稍后重试', loading: false });
       }
     } catch (err) {
       const msg = (err && err.message) || '';
       if (msg.includes('密码已经重置')) {
         this.setData({ error: '密码已经重置，请使用默认密码登录', loading: false });
       } else {
-        console.log('[login] 后端登录失败，自动进入离线模式', msg);
-        this.enterMockMode(username);
+        console.log('[login] 后端登录失败', msg);
+        this.setData({ error: '网络异常，请稍后重试', loading: false });
       }
     }
   },
@@ -221,46 +207,238 @@ Page({
   },
 
   checkProfileCompletion(userInfo) {
-    const skipUntil = wx.getStorageSync('profile_skip_until');
-    if (skipUntil && Date.now() < Number(skipUntil)) {
-      wx.switchTab({ url: homeTabPath(userInfo.role) });
+    const { isStudentRole, isInstructorRole } = require('../../utils/roles.js');
+    var needsCompletion = !userInfo.gender || !userInfo.birthDate || !userInfo.phone;
+    if (isStudentRole(userInfo.role) && !userInfo.groupEntryDate) {
+      needsCompletion = true;
+    }
+    if (needsCompletion) {
+      const skipUntil = wx.getStorageSync('profile_skip_until');
+      const now = Date.now();
+      if (!skipUntil || now > skipUntil) {
+        this.setData({
+          showProfileModal: true,
+          profileGender: userInfo.gender || '',
+          profileBirthDate: userInfo.birthDate || '',
+          profileGroupEntryDate: userInfo.groupEntryDate || '',
+          profilePhone: userInfo.phone || '',
+          profilePhotoUrl: userInfo.photoUrl || '',
+          profileIcaoDate: userInfo.icaoDate || '',
+          profileMedicalDate: userInfo.medicalDate || '',
+          profileIsStudent: isStudentRole(userInfo.role),
+          profileIsInstructor: isInstructorRole(userInfo.role),
+          profileResponsibleStudents: userInfo.responsibleStudents || [],
+          profileResponsibleInstructor: userInfo.responsibleInstructor || '',
+          profileError: '',
+          _profileUser: userInfo
+        });
+        this.loadResponsibleLists(userInfo);
+        return;
+      }
+    }
+    if (this.data.usingDefaultPassword) {
+      this.setData({ showPasswordModal: true, showPasswordForm: false });
       return;
     }
-    const needsCompletion = !userInfo.gender || !userInfo.birthDate;
-    if (needsCompletion) {
-      this.setData({ showProfileModal: true, profileModalUser: userInfo });
-    } else {
-      wx.switchTab({ url: homeTabPath(userInfo.role) });
+    wx.switchTab({ url: homeTabPath(userInfo.role) });
+  },
+
+  async loadResponsibleLists(userInfo) {
+    const { isStudentRole, isInstructorRole } = require('../../utils/roles.js');
+    try {
+      // 加载学员列表（给教员选）
+      if (isInstructorRole(userInfo.role)) {
+        const studentsRes = await app.request({ url: '/users/students' });
+        let students = [];
+        if (Array.isArray(studentsRes)) students = studentsRes;
+        else if (studentsRes && studentsRes.success && Array.isArray(studentsRes.data)) students = studentsRes.data;
+        const studentNames = students.map(s => s.name || s.username);
+        const currentIds = userInfo.responsibleStudents || [];
+        const currentInfo = students.filter(s => currentIds.includes(s.userId));
+        this.setData({
+          allStudents: students,
+          instructorStudentList: studentNames.length ? studentNames : ['暂无学员'],
+          profileResponsibleStudentsInfo: currentInfo,
+          profileResponsibleStudentsLabel: currentInfo.map(i => i.name).join('、') || ''
+        });
+      }
+      // 加载教员列表（给学员选）
+      if (isStudentRole(userInfo.role)) {
+        const instructorsRes = await app.request({ url: '/users/instructors' });
+        let instructors = [];
+        if (Array.isArray(instructorsRes)) instructors = instructorsRes;
+        else if (instructorsRes && instructorsRes.success && Array.isArray(instructorsRes.data)) instructors = instructorsRes.data;
+        const instructorNames = instructors.map(i => i.name || i.username);
+        const currentIndex = instructors.findIndex(i => i.userId === userInfo.responsibleInstructor);
+        this.setData({
+          allInstructors: instructors,
+          studentInstructorList: instructorNames.length ? instructorNames : ['暂无教员'],
+          profileResponsibleInstructorIndex: currentIndex >= 0 ? currentIndex : 0,
+          profileResponsibleInstructorLabel: currentIndex >= 0 ? instructors[currentIndex].name : ''
+        });
+      }
+    } catch (e) {
+      console.log('[login] 加载责任关系列表失败', e);
     }
   },
 
-  goToProfileFromModal() {
-    this.setData({ showProfileModal: false });
-    wx.navigateTo({ url: '/pages/profile/profile?firstLogin=1' });
+  onProfileGenderChange(e) {
+    const genders = ['男', '女'];
+    this.setData({ profileGender: genders[Number(e.detail.value)] });
   },
 
-  skipProfileModal() {
+  onProfileBirthDateChange(e) {
+    this.setData({ profileBirthDate: e.detail.value });
+  },
+
+  onProfileGroupEntryDateChange(e) {
+    this.setData({ profileGroupEntryDate: e.detail.value });
+  },
+
+  onProfilePhoneInput(e) {
+    this.setData({ profilePhone: e.detail.value });
+  },
+
+  onGetPhoneNumber(e) {
+    if (e.detail.errMsg && e.detail.errMsg.indexOf('ok') !== -1) {
+      // 真实环境下需后端解密，这里先模拟直接使用
+      const phone = e.detail.phoneNumber || e.detail.encryptedData;
+      if (phone && phone.length === 11) {
+        this.setData({ profilePhone: phone });
+        wx.showToast({ title: '已获取手机号', icon: 'success' });
+      } else {
+        wx.showToast({ title: '获取手机号失败，请手动输入', icon: 'none' });
+      }
+    } else {
+      wx.showToast({ title: '请授权手机号或手动输入', icon: 'none' });
+    }
+  },
+
+  chooseProfileAvatar() {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const tempFile = res.tempFiles[0];
+        if (!tempFile) return;
+        wx.showLoading({ title: '处理中' });
+        const fs = wx.getFileSystemManager();
+        fs.readFile({
+          filePath: tempFile.tempFilePath,
+          encoding: 'base64',
+          success: (readRes) => {
+            const base64 = 'data:image/jpeg;base64,' + readRes.data;
+            this.setData({ profilePhotoUrl: base64 });
+            wx.showToast({ title: '设置成功', icon: 'success' });
+          },
+          fail: () => wx.showToast({ title: '读取图片失败', icon: 'none' }),
+          complete: () => wx.hideLoading()
+        });
+      }
+    });
+  },
+
+  onProfileIcaoDateChange(e) {
+    this.setData({ profileIcaoDate: e.detail.value });
+  },
+
+  onProfileMedicalDateChange(e) {
+    this.setData({ profileMedicalDate: e.detail.value });
+  },
+
+  onProfileResponsibleInstructorChange(e) {
+    const index = Number(e.detail.value);
+    const instructor = this.data.allInstructors[index];
+    if (instructor) {
+      this.setData({
+        profileResponsibleInstructor: instructor.userId,
+        profileResponsibleInstructorLabel: instructor.name,
+        profileResponsibleInstructorIndex: index
+      });
+    }
+  },
+
+  onProfileResponsibleStudentsChange(e) {
+    const index = Number(e.detail.value[0] || e.detail.value);
+    const student = this.data.allStudents[index];
+    if (!student) return;
+    const current = this.data.profileResponsibleStudents.slice();
+    const currentInfo = this.data.profileResponsibleStudentsInfo.slice();
+    if (!current.includes(student.userId)) {
+      current.push(student.userId);
+      currentInfo.push(student);
+      this.setData({
+        profileResponsibleStudents: current,
+        profileResponsibleStudentsInfo: currentInfo,
+        profileResponsibleStudentsLabel: currentInfo.map(i => i.name).join('、')
+      });
+    }
+  },
+
+  removeResponsibleStudent(e) {
+    const userId = e.currentTarget.dataset.id;
+    const current = this.data.profileResponsibleStudents.filter(id => id !== userId);
+    const currentInfo = this.data.profileResponsibleStudentsInfo.filter(s => s.userId !== userId);
+    this.setData({
+      profileResponsibleStudents: current,
+      profileResponsibleStudentsInfo: currentInfo,
+      profileResponsibleStudentsLabel: currentInfo.map(i => i.name).join('、')
+    });
+  },
+
+  async handleProfileSave() {
+    const { profileGender, profileBirthDate, profileGroupEntryDate, profileIsStudent, profilePhone, profilePhotoUrl, profileIcaoDate, profileMedicalDate, profileResponsibleStudents, profileResponsibleInstructor, _profileUser } = this.data;
+    if (!profileGender) { this.setData({ profileError: '请选择性别' }); return; }
+    if (!profileBirthDate) { this.setData({ profileError: '请选择出生日期' }); return; }
+    if (!profilePhone) { this.setData({ profileError: '请输入手机号码' }); return; }
+    if (profileIsStudent && !profileGroupEntryDate) { this.setData({ profileError: '请选择进组时间' }); return; }
+
+    try {
+      const updateData = {
+        gender: profileGender,
+        birthDate: profileBirthDate,
+        phone: profilePhone,
+        photoUrl: profilePhotoUrl || '',
+        icaoDate: profileIcaoDate || '',
+        medicalDate: profileMedicalDate || ''
+      };
+      if (profileIsStudent) {
+        updateData.groupEntryDate = profileGroupEntryDate;
+        updateData.responsibleInstructor = profileResponsibleInstructor || '';
+      }
+      if (this.data.profileIsInstructor) {
+        updateData.responsibleStudents = profileResponsibleStudents || [];
+      }
+      await app.request({
+        url: '/auth/me',
+        method: 'PUT',
+        data: updateData
+      });
+      Object.assign(_profileUser, updateData);
+      wx.setStorageSync('userInfo', _profileUser);
+      app.globalData.userInfo = _profileUser;
+    } catch (e) {
+      wx.showToast({ title: '保存失败，请重试', icon: 'none' });
+      return;
+    }
+    this.setData({ showProfileModal: false });
+    wx.switchTab({ url: homeTabPath(_profileUser.role) });
+  },
+
+  handleProfileSkip() {
     wx.setStorageSync('profile_skip_until', Date.now() + 24 * 60 * 60 * 1000);
     this.setData({ showProfileModal: false });
-    const user = this.data.profileModalUser || app.globalData.userInfo;
-    if (user) wx.switchTab({ url: homeTabPath(user.role) });
+    const userInfo = this.data._profileUser || {};
+    if (this.data.usingDefaultPassword) {
+      this.setData({ showPasswordModal: true, showPasswordForm: false });
+      return;
+    }
+    wx.switchTab({ url: homeTabPath(userInfo.role) });
   },
 
-  enterMockMode(username) {
-    const role = this._inferRole(username);
-    const u = (username || '').trim().toLowerCase();
-    const MOCK_USERS_MAP = buildMockUserMap();
-    const base = MOCK_USERS_MAP[u] || { userId: `mock_${u || 'user'}_${Date.now()}`, username: username.trim() || 'students', name: username || '演示用户', role, department: '', team: '' };
-    const mockUser = Object.assign({}, base);
-    mockUser.level = base.studentLevel || base.instructorLevel || (role === 'center_director' ? '中心主任' : '学员');
-    wx.setStorageSync('token', 'mock_token');
-    wx.setStorageSync('userInfo', mockUser);
-    app.globalData.token = 'mock_token';
-    app.globalData.userInfo = mockUser;
-    app.enableMockMode();
-    this.setData({ loading: false });
-    wx.showToast({ title: '离线模式', icon: 'none' });
-    this.checkProfileCompletion(mockUser);
+  switchToPasswordModal() {
+    this.setData({ showProfileModal: false, showPasswordModal: true, showPasswordForm: true });
   },
 
   copyWebUrl(e) {
@@ -269,7 +447,7 @@ Page({
       data: url,
       success: () => {
         this.setData({ copyTip: true });
-        console.log('[login] URL 已复制到剪贴板', url);
+        // URL 已复制到剪贴板
         setTimeout(() => this.setData({ copyTip: false }), 2500);
       }
     });

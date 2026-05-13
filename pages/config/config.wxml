@@ -42,10 +42,6 @@
       <view bindtap="uploadExcel" class="manager-config-action-btn config-primary-btn config-upload-btn" style="flex:1;">📁 上传Excel</view>
     </view>
 
-    <!-- 数据备份按钮 -->
-    <view bindtap="toggleBackupModal" class="config-backup-trigger">
-      💾 数据备份下载
-    </view>
   </block>
 
   <!-- 编辑视图 -->
@@ -179,27 +175,6 @@
       <view bindtap="saveSector" style="flex:1;text-align:center;padding:12px 0;background:var(--accent-blue);border-radius:6px;color:#fff;font-size:14px;font-weight:600;">保存</view>
     </view>
   </block>
-
-  <!-- 备份弹窗 -->
-  <view wx:if="{{showBackupModal}}" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;" bindtap="toggleBackupModal">
-    <view style="background:var(--bg-secondary);border-radius:12px;padding:24px;width:100%;max-width:400px;border:1px solid var(--border-color);" catchtap="preventClose">
-      <view style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-        <view style="font-size:16px;font-weight:700;color:var(--text-primary);">数据备份下载</view>
-        <view bindtap="toggleBackupModal" style="font-size:20px;color:var(--text-muted);padding:4px;">✕</view>
-      </view>
-      <view style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">请选择需要导出的数据类型：</view>
-      <view wx:for="{{[{key:'users',label:'用户信息',desc:'所有注册用户的基础信息'},{key:'scores',label:'评分记录',desc:'所有评估打分的历史记录'},{key:'sectors',label:'扇区配置',desc:'所有扇区的评估标准配置'}]}}" wx:key="key" bindtap="toggleBackupOption" data-key="{{item.key}}" style="display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:8px;background:var(--bg-primary);border:{{backupOptions[item.key] ? '1px solid var(--accent-blue)' : '1px solid var(--border-color)'}};margin-bottom:10px;">
-        <view style="width:18px;height:18px;border-radius:3px;border:2px solid {{backupOptions[item.key] ? 'var(--accent-blue)' : 'var(--text-muted)'}};display:flex;align-items:center;justify-content:center;margin-top:1px;flex-shrink:0;">
-          <view wx:if="{{backupOptions[item.key]}}" style="width:10px;height:10px;border-radius:1px;background:var(--accent-blue);"></view>
-        </view>
-        <view>
-          <view style="font-size:14px;font-weight:500;color:var(--text-primary);">{{item.label}}</view>
-          <view style="font-size:12px;color:var(--text-muted);margin-top:2px;">{{item.desc}}</view>
-        </view>
-      </view>
-      <view bindtap="downloadBackup" style="text-align:center;padding:12px 0;background:var(--accent-blue);border-radius:6px;color:#fff;font-size:15px;font-weight:600;margin-top:8px;">⬇️ 一键下载备份</view>
-    </view>
-  </view>
 
   <!-- Toast -->
   <view wx:if="{{toast}}" style="position:fixed;bottom:100px;left:16px;right:16px;padding:12px 16px;background:rgba(19,34,56,0.96);border:1px solid var(--border-color);border-radius:8px;z-index:1000;text-align:center;">

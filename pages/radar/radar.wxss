@@ -72,6 +72,22 @@
   align-items: center;
   margin-bottom: 12px;
   gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, var(--bg-secondary, #132238), rgba(15, 29, 48, 0.95));
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #1e3a5f);
+  position: relative;
+  overflow: hidden;
+}
+
+.radar-toolbar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.5), rgba(59, 130, 246, 0.1), transparent);
 }
 
 .radar-student-select {
@@ -123,6 +139,26 @@
   color: var(--text-muted);
   margin-top: 10px;
   font-family: 'SF Mono', Monaco, monospace;
+}
+
+.radar-rank-info {
+  font-size: 12px;
+  color: var(--accent-cyan);
+  margin-top: 6px;
+  font-family: 'SF Mono', Monaco, monospace;
+  font-weight: 600;
+}
+
+.radar-score-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  opacity: 0.7;
+}
+
+.radar-score-card:active {
+  opacity: 0.9;
+  transform: scale(0.99);
 }
 
 /* ==================== 图表区域 ==================== */
@@ -190,7 +226,7 @@
 .radar-detail-left { flex: 1; padding-right: 8px; min-width: 0; }
 .radar-detail-name { font-size: 14px; color: var(--text-primary); word-break: break-word; overflow-wrap: break-word; }
 .radar-detail-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; word-break: break-word; overflow-wrap: break-word; }
-.radar-detail-deduct { font-size: 11px; color: var(--alert-red); margin-top: 2px; word-break: break-word; overflow-wrap: break-word; }
+.radar-detail-deduct { font-size: 11px; color: var(--danger, #ef4444); margin-top: 2px; word-break: break-word; overflow-wrap: break-word; font-weight: 600; }
 .radar-detail-right { flex-shrink: 0; text-align: right; display: flex; align-items: center; gap: 6px; }
 .radar-detail-score { font-size: 13px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace; }
 
@@ -207,16 +243,112 @@
 }
 .radar-detail-reason {
   margin-top: 6px;
-  padding: 6px 8px;
-  border-radius: 4px;
-  background: rgba(255, 77, 79, 0.12);
-  border-left: 2px solid rgba(255, 77, 79, 0.4);
-  font-size: 11px;
-  color: #ff6b6b;
-  line-height: 1.5;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.12);
+  border-left: 3px solid var(--danger, #ef4444);
+  font-size: 12px;
+  color: #ff8585;
+  line-height: 1.6;
+  font-weight: 500;
 }
 .radar-detail-reason-empty {
   color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ==================== 维度历史趋势 ==================== */
+.radar-cat-trend-section {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color, #1e3a5f);
+  margin-bottom: 8px;
+}
+.radar-cat-trend-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.radar-cat-trend-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 80px;
+  padding: 0 4px;
+}
+.radar-cat-trend-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+.radar-cat-trend-bar-wrap {
+  width: 100%;
+  max-width: 28px;
+  height: 50px;
+  background: var(--bg-primary, #0a1628);
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+.radar-cat-trend-bar {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  transition: height 0.3s;
+  min-height: 2px;
+}
+.radar-cat-trend-score {
+  font-size: 10px;
+  font-weight: 600;
+  font-family: 'SF Mono', Monaco, monospace;
+}
+.radar-cat-trend-date {
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.radar-cat-trend-item:active {
+  opacity: 0.7;
+}
+
+.radar-cat-trend-item--active .radar-cat-trend-bar-wrap {
+  box-shadow: 0 0 0 2px var(--accent-blue, #60a5fa);
+}
+
+.radar-cat-trend-detail {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--bg-surface-2, #162033);
+  border-radius: 8px;
+  border: 1rpx solid var(--border-subtle, #1a2740);
+}
+
+.radar-cat-trend-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1rpx solid var(--divider, #1a2740);
+}
+
+.radar-cat-trend-detail-row:last-child {
+  border-bottom: none;
+}
+
+.radar-cat-trend-detail-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.radar-cat-trend-detail-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: 'SF Mono', Monaco, monospace;
 }
 
 /* ==================== 个人到期提醒横幅 ==================== */
@@ -262,4 +394,52 @@
   background: rgba(255, 255, 255, 0.08);
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+/* ==================== 对比趋势标记 ==================== */
+.radar-comparison-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.radar-comparison-trend {
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'SF Mono', Monaco, monospace;
+}
+.radar-comparison-label {
+  font-size: 13px;
+  color: var(--text-secondary, #8a9bb0);
+}
+.radar-trend-up {
+  color: #00d26a;
+}
+.radar-trend-down {
+  color: #ff4d4f;
+}
+.radar-trend-flat {
+  color: var(--text-secondary, #8a9bb0);
+}
+.radar-cat-trend {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'SF Mono', Monaco, monospace;
+}
+
+/* ==================== 退出登录按钮 ==================== */
+.manager-logout-btn {
+  width: 100%;
+  margin: 16px 0 24px 0;
+  padding: 12px 16px;
+  text-align: center;
+  color: var(--alert-red, #ff4d4f);
+  font-size: 13px;
+  border: 1px solid rgba(255, 77, 79, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 77, 79, 0.05);
+}
+.manager-logout-btn:active {
+  background: rgba(255, 77, 79, 0.1);
 }

@@ -4,6 +4,27 @@
     <view class="btn trend-retry-btn" bindtap="loadConfig">重试</view>
   </view>
 
+  <!-- 配置概览 -->
+  <view class="card" wx:if="{{assignMode !== 'all'}}">
+    <view class="card-title">配置概览</view>
+    <view class="config-summary-row">
+      <view class="config-summary-item">
+        <view class="config-summary-value">{{configSummary.totalAssignments}}</view>
+        <view class="config-summary-label">分配关系</view>
+      </view>
+      <view class="config-summary-divider"></view>
+      <view class="config-summary-item">
+        <view class="config-summary-value">{{configSummary.assignedInstructors}}</view>
+        <view class="config-summary-label">已分配教员</view>
+      </view>
+      <view class="config-summary-divider"></view>
+      <view class="config-summary-item">
+        <view class="config-summary-value">{{configSummary.assignedStudents}}</view>
+        <view class="config-summary-label">已分配学员</view>
+      </view>
+    </view>
+  </view>
+
   <!-- 评分间隔 -->
   <view class="card">
     <view class="card-title">评分间隔</view>
@@ -47,18 +68,26 @@
     <view wx:if="{{!loading && students.length === 0}}" class="empty-state empty-state-compact">
       <view class="empty-text">暂无可分配学员</view>
     </view>
-    <view wx:if="{{!loading && instructors.length > 0 && students.length > 0}}" class="score-assign-table">
+
+    <!-- 搜索栏 -->
+    <view wx:if="{{!loading && instructors.length > 0 && students.length > 0}}" class="config-search-bar">
+      <input class="input config-search-input" placeholder="搜索教员..." value="{{instructorSearch}}" bindinput="onInstructorSearch" />
+      <input class="input config-search-input" placeholder="搜索学员..." value="{{studentSearch}}" bindinput="onStudentSearch" />
+    </view>
+
+    <view wx:if="{{!loading && filteredInstructors.length > 0 && filteredStudents.length > 0}}" class="score-assign-table">
       <view class="score-assign-header">
         <view class="score-assign-cell score-assign-corner">教员 \ 学员</view>
-        <view wx:for="{{students}}" wx:key="userId" class="score-assign-cell score-assign-col-head">
+        <view wx:for="{{filteredStudents}}" wx:key="userId" class="score-assign-cell score-assign-col-head">
           <text class="text-ellipsis">{{item.name}}</text>
         </view>
+        <view class="score-assign-cell score-assign-col-head">操作</view>
       </view>
-      <view wx:for="{{instructors}}" wx:key="userId" wx:for-item="ins" class="score-assign-row">
+      <view wx:for="{{filteredInstructors}}" wx:key="userId" wx:for-item="ins" class="score-assign-row">
         <view class="score-assign-cell score-assign-row-head">
           <text class="text-ellipsis">{{ins.name}}</text>
         </view>
-        <view wx:for="{{students}}" wx:key="userId" wx:for-item="stu"
+        <view wx:for="{{filteredStudents}}" wx:key="userId" wx:for-item="stu"
           class="score-assign-cell score-assign-check"
           bindtap="toggleAssignment"
           data-instructor-id="{{ins.userId}}"
@@ -66,6 +95,9 @@
           <view class="score-check-box {{isAssigned(ins.userId, stu.userId) ? 'checked' : ''}}">
             <view wx:if="{{isAssigned(ins.userId, stu.userId)}}" class="score-check-inner"></view>
           </view>
+        </view>
+        <view class="score-assign-cell score-assign-batch">
+          <view class="btn btn-sm btn-secondary" bindtap="openBatchPanel" data-instructorid="{{ins.userId}}" data-instructorname="{{ins.name}}">批量</view>
         </view>
       </view>
     </view>
@@ -75,6 +107,33 @@
   <view style="margin-top:12px;">
     <view class="btn btn-primary btn-block {{saving ? 'btn-disabled' : ''}}" bindtap="saveConfig">
       {{saving ? '保存中...' : '保存配置'}}
+    </view>
+  </view>
+
+  <!-- 批量分配弹窗 -->
+  <view wx:if="{{showBatchPanel}}" class="modal-overlay" bindtap="closeBatchPanel">
+    <view class="modal-body" catchtap="">
+      <view class="modal-header">
+        <text class="modal-title">批量分配 - {{batchInstructorName}}</text>
+        <text bindtap="closeBatchPanel" class="modal-close">✕</text>
+      </view>
+      <view class="batch-actions">
+        <view class="btn btn-sm btn-secondary" bindtap="batchSelectAll">全选</view>
+        <view class="btn btn-sm btn-secondary" bindtap="batchClearAll">清空</view>
+        <text class="batch-count">已选 {{batchSelectedStudents.length}} 人</text>
+      </view>
+      <scroll-view scroll-y class="batch-student-list">
+        <view wx:for="{{students}}" wx:key="userId" class="batch-student-item" bindtap="toggleBatchStudent" data-studentid="{{item.userId}}">
+          <view class="score-check-box {{batchSelectedStudents.indexOf(item.userId) >= 0 ? 'checked' : ''}}">
+            <view wx:if="{{batchSelectedStudents.indexOf(item.userId) >= 0}}" class="score-check-inner"></view>
+          </view>
+          <text class="batch-student-name">{{item.name}}</text>
+          <text class="batch-student-dept">{{item.department || ''}}</text>
+        </view>
+      </scroll-view>
+      <view class="modal-footer">
+        <view class="btn btn-primary btn-block" bindtap="applyBatchAssignment">确认分配（{{batchSelectedStudents.length}}人）</view>
+      </view>
     </view>
   </view>
 </view>

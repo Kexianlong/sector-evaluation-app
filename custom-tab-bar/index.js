@@ -3,39 +3,35 @@ const { isStudentRole, isInstructorRole, isManagerRole } = require('../utils/rol
 // app.json 中 tabBar.list 注册的真正 tab 页
 const TAB_PATHS = [
   '/pages/radar/radar',
-  '/pages/trend/trend',
   '/pages/score/score',
   '/pages/mygrades/mygrades',
-  '/pages/overview/overview'
+  '/pages/overview/overview',
+  '/pages/analysis/analysis'
 ];
 
 function tabListForRole(role) {
   if (isStudentRole(role)) {
     return [
-      { pagePath: '/pages/radar/radar', text: '学员详情', iconType: 'user' },
-      { pagePath: '/pages/trend/trend', text: '成长趋势', iconType: 'trend' },
-      { pagePath: '/pages/mygrades/mygrades', text: '我的成绩', iconType: 'user' }
+      { pagePath: '/pages/radar/radar', text: '评分详情', iconType: 'user' },
+      { pagePath: '/pages/mygrades/mygrades', text: '我的信息', iconType: 'user' }
     ];
   }
   if (isInstructorRole(role)) {
     return [
-      { pagePath: '/pages/radar/radar', text: '学员详情', iconType: 'user' },
-      { pagePath: '/pages/trend/trend', text: '成长趋势', iconType: 'trend' },
-      { pagePath: '/pages/mygrades/mygrades', text: '评分总览', iconType: 'analyze' },
+      { pagePath: '/pages/radar/radar', text: '评分总览', iconType: 'analyze' },
       { pagePath: '/pages/score/score', text: '评分工作', iconType: 'edit' }
     ];
   }
   if (isManagerRole(role)) {
     return [
-      { pagePath: '/pages/trend/trend', text: '详情', iconType: 'trend' },
-      { pagePath: '/pages/mygrades/mygrades', text: '评分总览', iconType: 'user' },
-      { pagePath: '/pages/overview/overview', text: '管理', iconType: 'building' }
+      { pagePath: '/pages/radar/radar', text: '评分总览', iconType: 'analyze' },
+      { pagePath: '/pages/analysis/analysis', text: '数据分析', iconType: 'trend' },
+      { pagePath: '/pages/overview/overview', text: '系统设置', iconType: 'building' }
     ];
   }
   return [
-    { pagePath: '/pages/radar/radar', text: '学员详情', iconType: 'user' },
-    { pagePath: '/pages/trend/trend', text: '成长趋势', iconType: 'trend' },
-    { pagePath: '/pages/mygrades/mygrades', text: '我的成绩', iconType: 'user' }
+    { pagePath: '/pages/radar/radar', text: '评分详情', iconType: 'user' },
+    { pagePath: '/pages/mygrades/mygrades', text: '我的信息', iconType: 'user' }
   ];
 }
 
@@ -134,18 +130,5 @@ Component({
       }
     },
 
-    handleLogout() {
-      wx.showModal({
-        title: '确认退出',
-        content: '确定要退出登录吗？',
-        confirmColor: '#ff4d4f',
-        success: (res) => {
-          if (res.confirm) {
-            const app = getApp();
-            if (app && app.logout) app.logout();
-          }
-        }
-      });
-    }
   }
 });

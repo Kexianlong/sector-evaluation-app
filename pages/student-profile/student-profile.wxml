@@ -1,0 +1,227 @@
+<view class="container">
+  <view wx:if="{{!student}}" class="loading-state">
+    <view class="loading-spinner"></view>
+    <text>加载中...</text>
+  </view>
+
+  <block wx:if="{{student}}">
+    <view class="card student-profile-header">
+      <view class="student-profile-avatar" style="background:var(--primary);">
+        <text style="color:#fff;font-size:40rpx;font-weight:700;">{{student.name[0] || '?'}}</text>
+      </view>
+      <view class="student-profile-info">
+        <text class="student-profile-name">{{student.name}}</text>
+        <text class="student-profile-meta">{{student.department || ''}} · {{student.studentLevel || student.level || ''}}</text>
+        <text class="student-profile-meta">{{student.team || ''}} {{student.groupEntryDate ? '· 进组: ' + student.groupEntryDate : ''}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{expiringItems.length > 0}}" class="card card-alert">
+      <view wx:for="{{expiringItems}}" wx:key="label" class="expiring-row {{item.urgent ? 'expiring-urgent' : ''}}">
+        <text class="expiring-icon">{{item.urgent ? '🔴' : '🟡'}}</text>
+        <text class="expiring-label">{{item.label}}</text>
+        <text class="expiring-date">{{item.date}}</text>
+      </view>
+    </view>
+
+    <view class="tab-bar">
+      <view class="tab-item {{activeTab === 'overview' ? 'tab-active' : ''}}" bindtap="switchTab" data-tab="overview">概览</view>
+      <view class="tab-item {{activeTab === 'scores' ? 'tab-active' : ''}}" bindtap="switchTab" data-tab="scores">成绩</view>
+      <view class="tab-item {{activeTab === 'trend' ? 'tab-active' : ''}}" bindtap="switchTab" data-tab="trend">曲线图</view>
+      <view class="tab-item {{activeTab === 'info' ? 'tab-active' : ''}}" bindtap="switchTab" data-tab="info">信息</view>
+    </view>
+
+    <view wx:if="{{activeTab === 'overview'}}" class="card">
+      <view class="card-title">最近评估</view>
+      <view wx:if="{{scores.length === 0}}" class="empty-state empty-state-compact">
+        <view class="empty-text">暂无评估记录</view>
+      </view>
+      <view wx:for="{{scores}}" wx:key="_id" wx:if="{{index < 3}}" class="recent-score-row">
+        <view class="recent-score-left">
+          <text class="sector-tag">{{item.sectorName || item.sectorId}}</text>
+          <text class="recent-score-date">{{item.date}}</text>
+        </view>
+        <view class="recent-score-right">
+          <text class="recent-score-total" style="color:{{item.totalScore >= 90 ? '#22c55e' : item.totalScore >= 85 ? '#3b82f6' : '#ef4444'}};">{{item.totalScore}}</text>
+          <text class="recent-score-grade">{{item.grade || ''}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{activeTab === 'scores'}}" class="card">
+      <view wx:if="{{scores.length === 0}}" class="empty-state empty-state-compact">
+        <view class="empty-text">暂无评估记录</view>
+      </view>
+      <view wx:for="{{scores}}" wx:key="_id">
+        <view class="recent-score-row" bindtap="toggleScoreExpand" data-id="{{item._id || item.scoreId || item.id}}">
+          <view class="recent-score-left">
+            <text class="sector-tag">{{item.sectorName || item.sectorId}}</text>
+            <text class="recent-score-date">{{item.date}}</text>
+          </view>
+          <view class="recent-score-right">
+            <text class="recent-score-total" style="color:{{item.totalScore >= 90 ? '#22c55e' : item.totalScore >= 85 ? '#3b82f6' : '#ef4444'}};">{{item.totalScore}}</text>
+            <text class="recent-score-grade">{{item.grade || ''}}</text>
+            <text style="font-size:11px;color:var(--text-muted);margin-left:6px;">{{expandedScoreId === (item._id || item.scoreId || item.id) ? '&#x25BC;' : '&#x25B6;'}}</text>
+          </view>
+        </view>
+        <!-- 展开的分类得分条 -->
+        <view wx:if="{{expandedScoreId === (item._id || item.scoreId || item.id)}}" style="padding:8px 0 8px 12px;border-left:2px solid var(--border-subtle,#1a2740);margin-left:4px;">
+          <view wx:for="{{item.scores}}" wx:for-item="cat" wx:key="categoryId" style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;" bindtap="showCategoryDetail" data-cat-name="{{cat.categoryName}}" data-record-id="{{item._id || item.scoreId || item.id}}">
+            <text style="flex:1;padding-right:8px;font-size:12px;color:var(--text-primary);">{{cat.categoryName}}</text>
+            <view class="progress-bar" style="width:50px;">
+              <view class="progress-fill" style="width:{{cat.maxScore > 0 ? Math.round((cat.score/cat.maxScore)*100) : 0}}%;background:{{cat.score >= cat.maxScore * 0.9 ? '#00d26a' : cat.score >= cat.maxScore * 0.75 ? '#ffaa00' : '#60a5fa'}};"></view>
+            </view>
+            <text style="font-size:12px;color:var(--text-secondary);font-family:monospace;margin-left:8px;min-width:30px;text-align:right;">{{cat.score}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 扇区评分曲线图 -->
+    <view wx:if="{{activeTab === 'trend'}}" class="sector-trend-container">
+      <view wx:if="{{sectorTrendData.length === 0 && !loading}}" class="card">
+        <view class="empty-state empty-state-compact">
+          <view class="empty-text">暂无评分数据</view>
+        </view>
+      </view>
+      <view wx:for="{{sectorTrendData}}" wx:key="sectorId" class="card sector-trend-card">
+        <view class="sector-trend-header">
+          <text class="sector-trend-name">{{item.sectorName}}</text>
+          <text class="sector-trend-count">{{item.scores.length}}次评分</text>
+        </view>
+        <view class="sector-trend-canvas-wrap">
+          <canvas type="2d" id="trendCanvas_{{item.sectorId}}" class="sector-trend-canvas" style="width:100%;height:160px;" />
+        </view>
+        <!-- 可点击的日期标签 -->
+        <view class="sector-trend-dates">
+          <view wx:for="{{item.scores}}" wx:for-item="sc" wx:key="date" class="sector-trend-date-tag" bindtap="goToRadarByScore" data-sector-id="{{item.sectorId}}" data-date="{{sc.date}}">
+            <text class="sector-trend-date-text">{{sc.shortDate}}</text>
+            <text class="sector-trend-date-score">{{sc.totalScore}}分</text>
+          </view>
+        </view>
+        <view class="sector-trend-summary">
+          <view class="sector-trend-stat">
+            <text class="stat-label">最高</text>
+            <text class="stat-value stat-high">{{item.maxScore}}</text>
+          </view>
+          <view class="sector-trend-stat">
+            <text class="stat-label">平均</text>
+            <text class="stat-value">{{item.avgScore}}</text>
+          </view>
+          <view class="sector-trend-stat">
+            <text class="stat-label">最低</text>
+            <text class="stat-value stat-low">{{item.minScore}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{activeTab === 'info'}}" class="card">
+      <view class="info-row">
+        <text class="info-label">性别</text>
+        <text class="info-value">{{student.gender || '未填写'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">出生日期</text>
+        <text class="info-value">{{student.birthDate || '未填写'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">进组时间</text>
+        <text class="info-value">{{student.groupEntryDate || '未填写'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">ICAO英语到期</text>
+        <text class="info-value">{{student.icaoDate || '未填写'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">体检合格证到期</text>
+        <text class="info-value">{{student.medicalDate || '未填写'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">阶段</text>
+        <text class="info-value">{{student.studentLevel || student.level || '未填写'}}</text>
+      </view>
+    </view>
+
+    <view class="student-profile-actions">
+      <view class="btn btn-primary" bindtap="goToRadar">查看雷达图</view>
+      <view class="btn btn-secondary" bindtap="goToScore">去评分</view>
+      <view class="btn btn-secondary" bindtap="goToEditUser">编辑信息</view>
+    </view>
+  </block>
+</view>
+
+<!-- 分类详情弹窗（点击分类得分条触发） -->
+<view wx:if="{{showCategoryPopup}}" class="popup-mask" bindtap="hideCategoryPopup">
+  <view class="popup-content" catchtap="preventClose">
+    <view class="popup-header">
+      <view class="popup-title">{{categoryPopupTitle}}</view>
+      <view class="radar-popup-close" bindtap="hideCategoryPopup">&#x2715;</view>
+    </view>
+
+    <!-- 历史趋势 -->
+    <view wx:if="{{categoryPopupTrend.length >= 2}}" class="radar-cat-trend-section">
+      <view class="radar-cat-trend-title">历史趋势（点击柱子查看该次评分详情）</view>
+      <view class="radar-cat-trend-row">
+        <view wx:for="{{categoryPopupTrend}}" wx:key="date" class="radar-cat-trend-item {{categoryPopupIndex === index ? 'radar-cat-trend-item--active' : ''}}" bindtap="onCategoryTrendTap" data-index="{{index}}">
+          <view class="radar-cat-trend-bar-wrap">
+            <view class="radar-cat-trend-bar" style="height:{{item.maxScore > 0 ? (item.score / item.maxScore * 100) : 0}}%;background:{{item.score >= item.maxScore * 0.9 ? 'var(--radar-green)' : item.score >= item.maxScore * 0.75 ? 'var(--amber)' : 'var(--alert-red)'}};"></view>
+          </view>
+          <text class="radar-cat-trend-score" style="color:{{item.score >= item.maxScore * 0.9 ? 'var(--radar-green)' : item.score >= item.maxScore * 0.75 ? 'var(--amber)' : 'var(--alert-red)'}};">{{item.score}}</text>
+          <text class="radar-cat-trend-date">{{item.date}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 单次评分信息 -->
+    <view wx:if="{{categoryPopupTrend.length === 1}}" class="radar-cat-trend-detail">
+      <view class="radar-cat-trend-detail-row">
+        <text class="radar-cat-trend-detail-label">日期</text>
+        <text class="radar-cat-trend-detail-value">{{categoryPopupTrend[0].fullDate}}</text>
+      </view>
+      <view class="radar-cat-trend-detail-row">
+        <text class="radar-cat-trend-detail-label">得分</text>
+        <text class="radar-cat-trend-detail-value" style="color:{{categoryPopupTrend[0].score >= categoryPopupTrend[0].maxScore * 0.9 ? 'var(--radar-green)' : categoryPopupTrend[0].score >= categoryPopupTrend[0].maxScore * 0.75 ? 'var(--amber)' : 'var(--alert-red)'}};">{{categoryPopupTrend[0].score}} / {{categoryPopupTrend[0].maxScore}}</text>
+      </view>
+      <view class="radar-cat-trend-detail-row">
+        <text class="radar-cat-trend-detail-label">得分率</text>
+        <text class="radar-cat-trend-detail-value">{{categoryPopupRate}}%</text>
+      </view>
+    </view>
+
+    <!-- 选中记录信息 -->
+    <view wx:if="{{categoryPopupTrend.length >= 2 && categoryPopupIndex >= 0 && categoryPopupRecord}}" class="radar-cat-trend-detail">
+      <view class="radar-cat-trend-detail-row">
+        <text class="radar-cat-trend-detail-label">日期</text>
+        <text class="radar-cat-trend-detail-value">{{categoryPopupRecord.date}}</text>
+      </view>
+      <view class="radar-cat-trend-detail-row">
+        <text class="radar-cat-trend-detail-label">得分</text>
+        <text class="radar-cat-trend-detail-value" style="color:{{categoryPopupTrend[categoryPopupIndex].score >= categoryPopupTrend[categoryPopupIndex].maxScore * 0.9 ? 'var(--radar-green)' : categoryPopupTrend[categoryPopupIndex].score >= categoryPopupTrend[categoryPopupIndex].maxScore * 0.75 ? 'var(--amber)' : 'var(--alert-red)'}};">{{categoryPopupTrend[categoryPopupIndex].score}} / {{categoryPopupTrend[categoryPopupIndex].maxScore}}</text>
+      </view>
+      <view class="radar-cat-trend-detail-row">
+        <text class="radar-cat-trend-detail-label">得分率</text>
+        <text class="radar-cat-trend-detail-value">{{categoryPopupRate}}%</text>
+      </view>
+    </view>
+
+    <!-- 扣分项列表 -->
+    <view wx:if="{{categoryPopupItems.length === 0}}" class="empty-state" style="padding:20px;">
+      <view class="empty-text">暂无子项配置数据</view>
+    </view>
+    <view wx:for="{{categoryPopupItems}}" wx:key="deductKey" class="list-item {{item.isDeducted ? 'radar-detail-item--danger' : ''}}">
+      <view class="radar-detail-row">
+        <view class="radar-detail-left">
+          <view class="radar-detail-name">{{item.name}}</view>
+          <view wx:if="{{item.deductionTemplate && !item.isDeducted}}" class="radar-detail-desc">{{item.deductionTemplate}}</view>
+          <view wx:if="{{item.isDeducted}}" class="radar-detail-deduct">扣 {{item.maxScore - item.score}} 分（{{item.score}}/{{item.maxScore}}）</view>
+        </view>
+        <view class="radar-detail-right">
+          <text wx:if="{{item.hasScore}}" class="radar-detail-score" style="{{item.isDeducted ? 'color:var(--alert-red);' : 'color:var(--radar-green);'}}">{{item.score}} / {{item.maxScore}}</text>
+          <text wx:else class="radar-detail-score" style="color:var(--text-muted);">满分 {{item.maxScore || 0}}</text>
+        </view>
+      </view>
+      <view wx:if="{{item.deductionReason}}" class="radar-detail-reason"><text style="color:var(--danger);font-weight:700;margin-right:4px;">[扣分说明]</text>{{item.deductionReason}}</view>
+    </view>
+  </view>
+</view>

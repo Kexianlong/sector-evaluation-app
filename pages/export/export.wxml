@@ -1,0 +1,65 @@
+<view class="container">
+  <view class="page-header" style="background:transparent; padding:0 0 16px 0; border:none;">
+    <view class="page-header-title">数据导出</view>
+    <view class="page-header-subtitle">EXPORT DATA</view>
+  </view>
+
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="export-loading">
+    <view class="export-spinner"></view>
+    <view style="font-size:13px;color:var(--text-secondary);margin-top:12px;">正在加载数据...</view>
+  </view>
+
+  <!-- 错误 -->
+  <view wx:if="{{!loading && loadError}}" class="trend-inline-alert" style="margin-bottom:12px;">
+    <text>{{loadError}}</text>
+    <view class="btn trend-retry-btn" bindtap="onRetryLoad">重试</view>
+  </view>
+
+  <!-- 字段选择 -->
+  <block wx:if="{{!loading && !loadError}}">
+    <view style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">
+      请选择要导出的字段，支持多 Sheet 同时导出
+    </view>
+
+    <view wx:for="{{sheets}}" wx:key="key" class="export-sheet-card">
+      <view class="export-sheet-header" bindtap="toggleSheet" data-key="{{item.key}}">
+        <view style="display:flex;align-items:center;gap:8px;">
+          <view class="export-sheet-icon">{{item.expanded ? '▼' : '▶'}}</view>
+          <view>
+            <view style="font-size:14px;font-weight:600;color:var(--text-primary);">{{item.label}}</view>
+            <view style="font-size:11px;color:var(--text-muted);margin-top:2px;">{{item.desc}}</view>
+          </view>
+        </view>
+        <view style="display:flex;gap:8px;align-items:center;">
+          <view bindtap="selectAllFields" data-sheet-key="{{item.key}}" data-value="{{true}}" class="export-action-link">全选</view>
+          <view style="color:var(--border-color);">|</view>
+          <view bindtap="selectAllFields" data-sheet-key="{{item.key}}" data-value="{{false}}" class="export-action-link">取消</view>
+        </view>
+      </view>
+
+      <view wx:if="{{item.expanded}}" class="export-fields-grid">
+        <view wx:for="{{item.fields}}" wx:key="key" wx:for-item="field"
+              class="export-field-item {{field.selected ? 'export-field-item--active' : ''}}"
+              bindtap="toggleField"
+              data-sheet-key="{{item.key}}"
+              data-field-key="{{field.key}}">
+          <view class="export-field-checkbox">
+            <view wx:if="{{field.selected}}" class="export-field-checkinner"></view>
+          </view>
+          <text class="export-field-label">{{field.label}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 导出按钮 -->
+    <view style="margin-top:20px;margin-bottom:40px;">
+      <view bindtap="doExport" class="export-btn-primary">
+        <text style="margin-right:6px;">⬇️</text> 导出 Excel
+      </view>
+      <view style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:10px;">
+        导出格式为 .xls，支持 Excel / WPS 打开
+      </view>
+    </view>
+  </block>
+</view>

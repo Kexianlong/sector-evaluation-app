@@ -6,19 +6,32 @@
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, var(--bg-secondary, #132238), #0f1d30);
+  padding: 14px 16px;
+  background: linear-gradient(135deg, var(--bg-secondary, #132238), rgba(15, 29, 48, 0.95));
   border-radius: 8px;
   border: 1px solid var(--border-color, #1e3a5f);
+  position: relative;
+  overflow: hidden;
+}
+
+.manager-profile-bar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(168, 85, 247, 0.5), rgba(168, 85, 247, 0.1), transparent);
 }
 
 .manager-avatar {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  border: 2px solid var(--border-color, #1e3a5f);
+  border: 2px solid rgba(168, 85, 247, 0.35);
   flex-shrink: 0;
   background: var(--bg-tertiary, #1a2d45);
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.08), 0 4px 10px rgba(0, 0, 0, 0.25);
 }
 
 .manager-profile-meta {
@@ -37,24 +50,6 @@
   font-size: 12px;
   color: var(--text-secondary, #8a9bb0);
   margin-top: 4px;
-}
-
-.manager-logout-btn {
-  margin-top: 20px;
-  padding: 12px;
-  text-align: center;
-  background: var(--bg-tertiary, var(--bg-tertiary, #1a2d45));
-  border: 1px solid var(--border-color, var(--border-color, #1e3a5f));
-  border-radius: 8px;
-  color: var(--text-secondary, var(--text-secondary, #8a9bb0));
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 1px;
-}
-
-.manager-logout-btn:active {
-  background: var(--bg-secondary, var(--bg-secondary, #132238));
-  color: var(--text-primary, var(--text-primary, #e8ecf1));
 }
 
 .hover-opacity:active {
@@ -140,43 +135,92 @@
   color: var(--accent-blue, var(--accent-blue, #2563eb));
 }
 
+/* ==================== 待处理事项 ==================== */
+.action-item-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.action-item-row:last-child {
+  border-bottom: none;
+}
+.action-item-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 10px;
+}
+.action-item-dot.danger {
+  background: var(--danger);
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+}
+.action-item-dot.warning {
+  background: var(--warning);
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
+}
+.action-item-dot.success {
+  background: var(--success);
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
+}
+.action-item-content {
+  flex: 1;
+}
+.action-item-text {
+  font-size: 13px;
+  color: var(--text-primary);
+  display: block;
+}
+.action-item-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: block;
+  margin-top: 2px;
+}
+
 /* ==================== 管理入口网格 ==================== */
-.manager-admin-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+.admin-grid {
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
-
-.manager-admin-tile {
-  background: var(--bg-primary, var(--bg-primary, #0a1628));
+.admin-grid-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: calc((100% - 20px) / 3);
+  padding: 18px 8px 14px;
   border-radius: 8px;
-  padding: 16px 4px;
+  background: var(--bg-primary, #0a1628);
+  border: 1px solid var(--border-color, #1e3a5f);
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+.admin-grid-tile--active {
+  border-color: var(--accent-blue, #2563eb);
+  background: rgba(37, 99, 235, 0.06);
+}
+.admin-grid-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  margin-bottom: 7px;
+  opacity: 0.7;
+  pointer-events: none;
+}
+.admin-grid-tile--active .admin-grid-icon {
+  opacity: 1;
+}
+.admin-grid-label {
+  font-size: 11px;
+  color: var(--text-secondary, #8a9bb0);
   text-align: center;
-  border: 1px solid var(--border-color, var(--border-color, #1e3a5f));
-  color: inherit;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  line-height: 1.3;
 }
-
-.manager-admin-tile:active {
-  border-color: var(--accent-blue, var(--accent-blue, #2563eb));
-  box-shadow: 0 0 10px rgba(37, 99, 235, 0.2);
-}
-
-.manager-admin-tile-icon {
-  font-size: 24px;
-  margin-bottom: 6px;
-}
-
-.manager-admin-tile-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary, var(--text-primary, #e8ecf1));
-}
-
-.manager-admin-tile-sub {
-  font-size: 10px;
-  color: var(--text-muted, var(--text-muted, #4a5d75));
-  margin-top: 2px;
+.admin-grid-tile--active .admin-grid-label {
+  color: var(--accent-blue, #2563eb);
 }
 
 /* ==================== 最近评估记录 ==================== */
@@ -364,7 +408,7 @@
 /* ==================== 登出按钮 ==================== */
 .manager-logout-btn {
   width: 100%;
-  margin-top: 16px;
+  margin: 16px 0 24px 0;
   padding: 12px 16px;
   text-align: center;
   color: var(--alert-red, #ff4d4f);
@@ -403,6 +447,16 @@
   margin-top: 8px;
   margin-bottom: 6px;
   transition: background 0.2s ease;
+}
+
+.overview-instructor-link {
+  color: var(--accent-blue, #2563eb);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.overview-instructor-link:active {
+  opacity: 0.7;
 }
 
 .overview-deduct-item:active {
@@ -492,15 +546,6 @@
   .manager-stat-box-value {
     font-size: 22px !important;
   }
-  .manager-admin-tile {
-    padding: 12px 6px;
-  }
-  .manager-admin-tile-icon {
-    font-size: 20px;
-  }
-  .manager-admin-tile-title {
-    font-size: 12px;
-  }
 }
 
 @media (max-width: 320px) {
@@ -510,7 +555,33 @@
   .manager-stat-box-value {
     font-size: 20px !important;
   }
-  .manager-admin-grid {
-    gap: 8px;
-  }
+}
+
+.attention-item {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid var(--border-subtle, #1a2740);
+}
+.attention-item:last-child {
+  border-bottom: none;
+}
+.attention-item:active {
+  background: var(--bg-surface-2, #162033);
+}
+.attention-icon {
+  font-size: 28rpx;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+.attention-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+.attention-arrow {
+  color: var(--text-muted, #475569);
+  font-size: 32rpx;
+  flex-shrink: 0;
 }

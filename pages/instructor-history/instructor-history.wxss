@@ -78,6 +78,159 @@
   line-height: 1.5;
 }
 
+/* 记录列表样式（复用 overview 评估记录） */
+.manager-recent-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.manager-recent-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.manager-recent-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color, #1e3a5f);
+  flex-shrink: 0;
+}
+
+.manager-recent-avatar--high {
+  background: var(--bg-green-light, rgba(0, 210, 106, 0.15));
+  border-color: var(--border-green-light, rgba(0, 210, 106, 0.35));
+}
+
+.manager-recent-avatar--mid {
+  background: var(--bg-amber-light, rgba(255, 170, 0, 0.15));
+  border-color: var(--border-amber-light, rgba(255, 170, 0, 0.35));
+}
+
+.manager-recent-avatar--low {
+  background: var(--bg-red-light, rgba(255, 77, 79, 0.15));
+  border-color: var(--border-red-light, rgba(255, 77, 79, 0.35));
+}
+
+.manager-recent-avatar-score {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'SF Mono', Monaco, monospace;
+}
+
+.manager-recent-row--high .manager-recent-avatar-score {
+  color: var(--radar-green, #00d26a);
+}
+
+.manager-recent-row--mid .manager-recent-avatar-score {
+  color: var(--amber, #ffaa00);
+}
+
+.manager-recent-row--low .manager-recent-avatar-score {
+  color: var(--alert-red, #ff4d4f);
+}
+
+.manager-recent-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #e8ecf1);
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.manager-recent-meta {
+  font-size: 11px;
+  color: var(--text-muted, #4a5d75);
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.manager-recent-right {
+  text-align: right;
+  flex-shrink: 0;
+  padding-left: 8px;
+}
+
+.manager-recent-grade {
+  font-size: 12px;
+  color: var(--text-secondary, #8a9bb0);
+}
+
+.manager-delete-btn {
+  font-size: 16px;
+  padding: 6px 8px;
+  opacity: 0.6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 6px;
+}
+
+.manager-delete-btn:active {
+  opacity: 1;
+  background: var(--bg-tertiary, #1a2d45);
+}
+
+.manager-delete-confirm {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.overview-released-tag {
+  display: inline-block;
+  font-size: 10px;
+  color: #f87171;
+  background: rgba(255, 77, 79, 0.1);
+  border: 1px solid rgba(255, 77, 79, 0.25);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+  line-height: 1.4;
+}
+
+.overview-instructor-link {
+  color: var(--accent-blue, #2563eb);
+  text-decoration: underline;
+}
+
+.overview-instructor-link:active {
+  opacity: 0.7;
+}
+
+.overview-deduct-item {
+  border-left: 3px solid #ef4444 !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+  margin-top: 8px;
+  margin-bottom: 6px;
+  transition: background 0.2s ease;
+}
+
+.overview-deduct-item:active {
+  background: rgba(239, 68, 68, 0.15) !important;
+}
+
+.overview-deduct-reason {
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #f87171;
+  line-height: 1.5;
+}
+
 /* 小屏适配 */
 @media (max-width: 375px) {
   .instructor-history-filters .form-input {

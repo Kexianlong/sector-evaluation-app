@@ -13,6 +13,16 @@
     <text class="list-item-arrow" style="margin-left:auto;">›</text>
   </view>
 
+  <!-- 退出登录 -->
+  <view class="manager-logout-btn" bindtap="logout">退出登录</view>
+
+  <!-- 管理端到期提醒 -->
+  <view class="reminder-bar" wx:if="{{managerReminder}}" bindtap="expandReminderPanel">
+    <text class="reminder-bar-icon">⚠</text>
+    <text class="reminder-bar-text">{{managerReminder}}</text>
+    <text class="reminder-bar-action">查看详情</text>
+  </view>
+
   <!-- 错误提示 -->
   <view wx:if="{{loadError}}" class="trend-inline-alert" style="margin-bottom:12px;">
     <text>{{loadError}}</text>
@@ -39,40 +49,29 @@
     </view>
   </view>
 
-  <!-- 管理功能 -->
-  <view wx:if="{{isManager}}" class="card manager-admin-card" style="margin-bottom:12px;">
-    <view class="card-title">管理功能 / ADMIN</view>
-    <view class="manager-admin-grid">
-      <view class="manager-admin-tile" bindtap="goToUsers">
-        <view class="manager-admin-tile-icon">👥</view>
-        <view class="manager-admin-tile-title">用户管理</view>
-        <view class="manager-admin-tile-sub">USER MGMT</view>
+  <!-- 待关注事项 -->
+  <view class="card mb-12" wx:if="{{attentionItems.length}}">
+    <view class="card-title">待关注事项</view>
+    <view wx:for="{{attentionItems}}" wx:key="id" class="attention-item" bindtap="{{item.action}}" data-params="{{item.params}}">
+      <text class="attention-icon">{{item.icon}}</text>
+      <view class="attention-content">
+        <text class="text-primary text-14">{{item.text}}</text>
+        <text class="text-secondary text-12">{{item.subtext}}</text>
       </view>
-      <view class="manager-admin-tile" bindtap="goToConfig">
-        <view class="manager-admin-tile-icon">⚙️</view>
-        <view class="manager-admin-tile-title">扇区配置</view>
-        <view class="manager-admin-tile-sub">SECTOR CFG</view>
+      <text class="attention-arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 待处理事项 -->
+  <view wx:if="{{isManager && actionItems.length > 0}}" class="card" style="margin-bottom:12px;">
+    <view class="card-title">待处理事项</view>
+    <view wx:for="{{actionItems}}" wx:key="id" class="action-item-row" bindtap="{{item.action}}" data-studentid="{{item.studentId}}" data-userid="{{item.userId}}">
+      <text class="action-item-dot {{item.level}}"></text>
+      <view class="action-item-content">
+        <text class="action-item-text">{{item.text}}</text>
+        <text class="action-item-sub">{{item.sub}}</text>
       </view>
-      <view class="manager-admin-tile" bindtap="goToScoreConfig">
-        <view class="manager-admin-tile-icon">📋</view>
-        <view class="manager-admin-tile-title">评分任务</view>
-        <view class="manager-admin-tile-sub">SCORE TASK</view>
-      </view>
-      <view class="manager-admin-tile" bindtap="goToAnalysis">
-        <view class="manager-admin-tile-icon">📈</view>
-        <view class="manager-admin-tile-title">数据分析</view>
-        <view class="manager-admin-tile-sub">ANALYSIS</view>
-      </view>
-      <view class="manager-admin-tile" bindtap="goToReminders">
-        <view class="manager-admin-tile-icon">🔔</view>
-        <view class="manager-admin-tile-title">全局提醒</view>
-        <view class="manager-admin-tile-sub">REMINDERS</view>
-      </view>
-      <view class="manager-admin-tile" bindtap="goToExport">
-        <view class="manager-admin-tile-icon">📊</view>
-        <view class="manager-admin-tile-title">数据导出</view>
-        <view class="manager-admin-tile-sub">EXPORT</view>
-      </view>
+      <text class="list-item-arrow">›</text>
     </view>
   </view>
 
@@ -104,141 +103,33 @@
     </view>
   </view>
 
-  <!-- 评估记录 -->
-  <view class="card manager-recent-card" style="margin-bottom:12px;">
-    <view class="card-title">评估记录 / ALL RECORDS</view>
-
-    <!-- 筛选栏 -->
-    <view class="manager-record-filters">
-      <picker bindchange="onStudentFilterChange" range="{{studentPickerNames}}" value="{{studentFilterIndex}}">
-        <view class="form-input manager-record-filter-input" style="display:flex;align-items:center;justify-content:center;">{{studentPickerNames[studentFilterIndex]}}</view>
-      </picker>
-      <picker bindchange="onInstructorFilterChange" range="{{instructorPickerNames}}" value="{{instructorFilterIndex}}">
-        <view class="form-input manager-record-filter-input" style="display:flex;align-items:center;justify-content:center;">{{instructorPickerNames[instructorFilterIndex]}}</view>
-      </picker>
-      <picker bindchange="onSectorFilterChange" range="{{sectorPickerNames}}" value="{{sectorFilterIndex}}">
-        <view class="form-input manager-record-filter-input" style="display:flex;align-items:center;justify-content:center;">{{sectorPickerNames[sectorFilterIndex]}}</view>
-      </picker>
-      <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange">
-        <view class="form-input manager-record-filter-input" style="display:flex;align-items:center;justify-content:center;">{{startDate || '开始日期'}}</view>
-      </picker>
-      <picker mode="date" value="{{endDate}}" bindchange="onEndDateChange">
-        <view class="form-input manager-record-filter-input" style="display:flex;align-items:center;justify-content:center;">{{endDate || '结束日期'}}</view>
-      </picker>
-    </view>
-
-    <!-- 操作行 -->
-    <view class="manager-record-actions">
-      <view class="manager-record-toggle" bindtap="toggleIncludeReleased">
-        <view class="manager-record-checkbox {{includeReleased ? 'checked' : ''}}">
-          <view wx:if="{{includeReleased}}" class="manager-record-checkbox-inner"></view>
-        </view>
-        <text>包含放单学员</text>
+  <!-- 管理功能 -->
+  <view wx:if="{{isManager}}" class="card manager-admin-card" style="margin-bottom:12px;">
+    <view class="card-title">管理功能</view>
+    <view class="admin-grid">
+      <view class="admin-grid-tile" data-action="users" hover-class="admin-grid-tile--active" bindtap="onAdminGridTap">
+        <image class="admin-grid-icon" src="/images/icons/user.svg" mode="aspectFit" />
+        <text class="admin-grid-label">用户管理</text>
       </view>
-      <view class="btn btn-sm btn-secondary" bindtap="clearFilters" style="font-size:11px;">清除筛选</view>
-      <view class="btn btn-sm btn-secondary" bindtap="toggleShowAll" style="font-size:11px;">
-        {{showAll ? '显示最近记录' : '显示全部 (' + (_filteredTotal || filteredRecords.length) + '条)'}}
+      <view class="admin-grid-tile" data-action="config" hover-class="admin-grid-tile--active" bindtap="onAdminGridTap">
+        <image class="admin-grid-icon" src="/images/icons/gear.svg" mode="aspectFit" />
+        <text class="admin-grid-label">扇区配置</text>
       </view>
-    </view>
-
-    <!-- 骨架屏 -->
-    <view wx:if="{{loading}}" class="trend-skeleton-list">
-      <view class="trend-skeleton-row"></view>
-      <view class="trend-skeleton-row"></view>
-      <view class="trend-skeleton-row"></view>
-    </view>
-
-    <!-- 空状态 -->
-    <view wx:if="{{!loading && filteredRecords.length === 0}}" class="empty-state empty-state-compact">
-      <view class="empty-text">暂无评估记录</view>
-    </view>
-
-    <!-- 记录列表 -->
-    <view wx:for="{{filteredRecords}}" wx:key="scoreId" wx:if="{{!loading}}">
-      <view class="student-history-block">
-        <view
-          class="manager-recent-row list-item manager-recent-row--{{item.tone}} student-history-toggle {{expandedId === item.scoreId ? 'student-history-toggle-open' : ''}}"
-          bindtap="toggleExpand"
-          data-id="{{item.scoreId}}"
-          aria-expanded="{{expandedId === item.scoreId}}"
-        >
-          <view class="manager-recent-left">
-            <view class="manager-recent-avatar manager-recent-avatar--{{item.tone}}">
-              <text class="manager-recent-avatar-score">{{item.totalScore}}</text>
-            </view>
-            <view>
-              <view class="manager-recent-name">
-                {{item.studentName}}
-                <text wx:if="{{item.released}}" class="overview-released-tag">已放单</text>
-              </view>
-              <view class="manager-recent-meta">{{item.sectorName}} · {{item.date}} · {{item.instructorName}}</view>
-            </view>
-          </view>
-          <view class="manager-recent-right" style="display:flex;align-items:center;gap:8px;">
-            <view>
-              <view class="manager-recent-grade">{{item.grade}}</view>
-            </view>
-            <text class="list-item-arrow" style="font-size:12px;color:var(--text-muted);">{{expandedId === item.scoreId ? '▼' : '▶'}}</text>
-          </view>
-        </view>
-
-        <!-- 展开详情 -->
-        <view wx:if="{{expandedId === item.scoreId}}" class="student-history-panel">
-          <view class="student-history-total-row">
-            <text class="student-history-total-label">总分</text>
-            <text class="student-history-total-value">
-              {{item.totalScore}}
-              <text class="student-history-total-max"> / {{item.maxTotal}}</text>
-            </text>
-          </view>
-
-          <view wx:for="{{item.scoresArray}}" wx:for-item="cat" wx:key="categoryId" style="padding:10px 0;border-top:1px solid var(--bg-tertiary,#1a2d45);">
-            <view style="display:flex;justify-content:space-between;align-items:center;padding:0;">
-              <view style="flex:1;padding-right:8px;">
-                <view style="font-size:14px;color:var(--text-primary,#e8ecf1);">{{cat.categoryName}}</view>
-                <view style="font-size:11px;color:var(--text-muted,#4a5d75);margin-top:2px;">满分 {{cat.catMax}} 分</view>
-              </view>
-              <view style="display:flex;align-items:center;gap:8px;">
-                <view class="progress-bar" style="width:60px;">
-                  <view class="progress-fill" style="width:{{cat.pct}}%;background:{{cat.barColor}};"></view>
-                </view>
-                <text class="score-badge score-pass" style="font-family:monospace;">{{cat.catScore}}</text>
-              </view>
-            </view>
-
-            <!-- 扣分项 -->
-            <view wx:if="{{item.deductItems && item.deductItems.length > 0}}">
-              <view
-                wx:for="{{item.deductItems}}"
-                wx:for-item="d"
-                wx:key="itemId"
-                wx:if="{{d.categoryId === cat.categoryId}}"
-                class="trend-overview-deduct-item overview-deduct-item"
-                bindtap="toggleDeductExpand"
-                data-key="{{d.deductKey}}"
-              >
-                <view style="display:flex;justify-content:space-between;align-items:center;">
-                  <view>
-                    <view class="trend-overview-deduct-name">{{d.itemName}}</view>
-                    <view class="trend-overview-deduct-meta">扣 {{d.deductVal}} 分（{{d.itemScore}}/{{d.itemMax}}）</view>
-                  </view>
-                  <text style="font-size:11px;color:var(--text-muted);margin-left:8px;">{{expandedDeductId === d.deductKey ? '▼' : '▶'}}</text>
-                </view>
-                <view wx:if="{{expandedDeductId === d.deductKey && d.reason}}" class="trend-overview-deduct-reason overview-deduct-reason">{{d.reason}}</view>
-                <view wx:if="{{expandedDeductId === d.deductKey && !d.reason}}" class="trend-overview-deduct-empty">未填写扣分原因</view>
-              </view>
-            </view>
-          </view>
-
-          <!-- 删除操作 -->
-          <view style="display:flex;justify-content:flex-end;margin-top:8px;gap:8px;">
-            <view wx:if="{{deleteConfirmId === item.scoreId}}" class="manager-delete-confirm">
-              <view class="btn btn-sm btn-danger" bindtap="confirmDelete" data-id="{{item.scoreId}}" style="font-size:11px;padding:2px 8px;min-height:28px;">{{deleting ? '删除中…' : '确认删除'}}</view>
-              <view class="btn btn-sm btn-secondary" bindtap="cancelDelete" style="font-size:11px;padding:2px 8px;min-height:28px;">取消</view>
-            </view>
-            <view wx:else class="manager-delete-btn" bindtap="onDeleteTap" data-id="{{item.scoreId}}">🗑</view>
-          </view>
-        </view>
+      <view class="admin-grid-tile" data-action="scoreConfig" hover-class="admin-grid-tile--active" bindtap="onAdminGridTap">
+        <image class="admin-grid-icon" src="/images/icons/clipboard.svg" mode="aspectFit" />
+        <text class="admin-grid-label">评分配置</text>
+      </view>
+      <view class="admin-grid-tile" data-action="analysis" hover-class="admin-grid-tile--active" bindtap="onAdminGridTap">
+        <image class="admin-grid-icon" src="/images/icons/chart.svg" mode="aspectFit" />
+        <text class="admin-grid-label">评估记录</text>
+      </view>
+      <view class="admin-grid-tile" data-action="reminders" hover-class="admin-grid-tile--active" bindtap="onAdminGridTap">
+        <image class="admin-grid-icon" src="/images/icons/bell.svg" mode="aspectFit" />
+        <text class="admin-grid-label">全局提醒</text>
+      </view>
+      <view class="admin-grid-tile" data-action="export" hover-class="admin-grid-tile--active" bindtap="onAdminGridTap">
+        <image class="admin-grid-icon" src="/images/icons/download.svg" mode="aspectFit" />
+        <text class="admin-grid-label">数据导出</text>
       </view>
     </view>
   </view>

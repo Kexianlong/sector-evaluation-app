@@ -409,6 +409,21 @@
   min-height: 44px;
 }
 
+/* 微信手机号授权按钮重置 */
+.login-form-group button {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  line-height: inherit;
+  font-size: inherit;
+  color: inherit;
+  border-radius: 0;
+}
+.login-form-group button::after {
+  border: none;
+}
+
 /* 小屏适配（如 iPhone SE / 小屏 Android） */
 @media (max-width: 375px) {
   .login-page {

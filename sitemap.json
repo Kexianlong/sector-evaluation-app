@@ -1,7 +1,9 @@
 {
   "desc": "关于本小程序的索引",
-  "rules": [{
-    "action": "allow",
-    "page": "*"
-  }]
+  "rules": [
+    { "action": "allow", "page": "pages/login/login" },
+    { "action": "allow", "page": "pages/radar/radar" },
+    { "action": "allow", "page": "pages/mygrades/mygrades" },
+    { "action": "disallow", "page": "*" }
+  ]
 }

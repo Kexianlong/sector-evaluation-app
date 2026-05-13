@@ -13,11 +13,16 @@
     <view class="card-title">数据分析工作台</view>
 
     <view class="manager-analysis-grid">
-      <view class="manager-analysis-field">
+      <view class="manager-analysis-field" style="grid-column:1/-1;">
         <view class="form-label">扇区</view>
-        <picker bindchange="onSectorChange" range="{{sectorNames}}" value="{{sectorIndex}}">
-          <view class="form-input">{{sectorNames[sectorIndex] || '请选择扇区'}}</view>
-        </picker>
+        <scroll-view class="pill-tabs" scroll-x="true">
+          <view wx:for="{{sectors}}" wx:key="sectorId"
+            class="pill-tab {{currentSector === item.sectorId ? 'pill-tab-active' : ''}}"
+            data-index="{{index}}"
+            bindtap="onSectorTabTap">
+            {{item.name || item.sectorId}}
+          </view>
+        </scroll-view>
       </view>
 
       <view class="manager-analysis-field">
@@ -109,6 +114,36 @@
       </view>
     </view>
 
+    <!-- 指标详情面板（点击柱状图后显示） -->
+    <view wx:if="{{selectedIndicator}}" class="indicator-detail-panel">
+      <view class="indicator-detail-header">
+        <view class="indicator-detail-title">{{selectedIndicator.name}}</view>
+        <view class="indicator-detail-score" style="color:{{selectedIndicator.color}};">{{selectedIndicator.value}}%</view>
+        <view class="indicator-detail-close" bindtap="clearIndicatorSelection">✕</view>
+      </view>
+      <view class="indicator-detail-desc">{{selectedIndicator.description || '暂无详细说明'}}</view>
+      <view class="indicator-detail-meta">
+        <text>满分: {{selectedIndicator.maxScore}}分</text>
+        <text style="margin-left:16px;">群体均值: {{selectedIndicator.groupAvg}}%</text>
+      </view>
+      
+      <!-- 历史趋势滚动区域 -->
+      <view class="indicator-history-trend">
+        <view class="indicator-history-label">历史趋势</view>
+        <scroll-view scroll-x class="indicator-history-scroll" enhanced show-scrollbar="false">
+          <view class="indicator-history-bars">
+            <view wx:for="{{selectedIndicator.history}}" wx:key="date" class="indicator-history-item">
+              <view class="indicator-history-bar-wrap">
+                <view class="indicator-history-bar" style="height:{{item.height}}%;background:{{item.color}};"></view>
+              </view>
+              <text class="indicator-history-date">{{item.dateStr}}</text>
+              <text class="indicator-history-score">{{item.value}}%</text>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+    </view>
+
     <view wx:if="{{!loading && legendItems.length > 0}}" class="trend-chart-legend">
       <view wx:for="{{legendItems}}" wx:key="name" class="trend-legend-item">
         <view class="trend-legend-dot" style="background:{{item.color}};"></view>
@@ -149,6 +184,19 @@
         <text class="summary-stat-value">{{summaryStats.range}}%</text>
         <text class="summary-stat-label">极差</text>
       </view>
+    </view>
+  </view>
+
+  <!-- 待关注学员 -->
+  <view wx:if="{{!loading && attentionStudents.length > 0}}" class="card" style="margin-bottom:12px;">
+    <view class="card-title" style="color:var(--danger);">待关注学员</view>
+    <view wx:for="{{attentionStudents}}" wx:key="studentId" class="attention-student-row" bindtap="goToStudentProfile" data-id="{{item.studentId}}">
+      <text class="attention-student-icon">{{item.type === 'decline' ? '📉' : item.type === 'weak' ? '⚠️' : '⏰'}}</text>
+      <view class="attention-student-info">
+        <text class="attention-student-name">{{item.studentName}}</text>
+        <text class="attention-student-reason">{{item.reason}}</text>
+      </view>
+      <text class="list-item-arrow">›</text>
     </view>
   </view>
 

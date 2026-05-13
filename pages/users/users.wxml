@@ -92,41 +92,27 @@
       <view class="empty-text">暂无用户数据</view>
     </view>
 
-    <view wx:for="{{filteredUsers}}" wx:key="userId" class="list-item list-item-row">
-      <view class="list-item-main">
-        <view class="list-item-name-row">
-          <text class="list-item-title">{{item.name}}</text>
+    <view wx:for="{{filteredUsers}}" wx:key="userId" class="list-item user-compact-row" bindtap="goToProfile" data-id="{{item.userId}}" hover-class="user-compact-row--active">
+      <view class="user-compact-avatar">
+        <image class="user-compact-avatar-img" src="{{item.avatarUrl}}" mode="aspectFill" />
+      </view>
+      <view class="user-compact-main">
+        <view class="user-compact-name-row">
+          <text class="user-compact-name">{{item.name}}</text>
           <view class="user-role-tag user-role-{{item.role}}">
             {{item.role === 'student' ? '学员' : item.role === 'instructor' ? '教员' : item.role === 'deputy_director' ? '科室副主任' : item.role === 'supervisor' ? '培训主管' : item.role === 'department_head' ? '科室主任' : '中心主任'}}
           </view>
           <view wx:if="{{item.role === 'student' && item.isReleased}}" class="tag-green">已放单</view>
-          <view wx:if="{{item.studentLevel}}" class="tag-amber">{{item.studentLevel}}</view>
-          <view wx:if="{{item.instructorLevel}}" class="tag-green">{{item.instructorLevel}}</view>
-          <view wx:if="{{item.icaoExpiry.status === 'warning'}}" class="expiry-tag expiry-warning">ICAO {{item.icaoExpiry.message}}</view>
-          <view wx:if="{{item.icaoExpiry.status === 'expired'}}" class="expiry-tag expiry-expired">ICAO {{item.icaoExpiry.message}}</view>
-          <view wx:if="{{item.medicalExpiry.status === 'warning'}}" class="expiry-tag expiry-warning">体检 {{item.medicalExpiry.message}}</view>
-          <view wx:if="{{item.medicalExpiry.status === 'expired'}}" class="expiry-tag expiry-expired">体检 {{item.medicalExpiry.message}}</view>
+          <view wx:if="{{item.needsAttention}}" class="tag-alert">{{item.attentionReasons.join(' · ')}}</view>
         </view>
-        <view class="list-item-sub">
-          <text>{{item.username}}</text>
-          <text wx:if="{{item.gender}}" style="margin-left: 8px;">{{item.gender}}</text>
-          <text wx:if="{{item.birthDate}}" style="margin-left: 8px;">{{item.birthDate}}</text>
-          <text wx:if="{{item.department}}" style="margin-left: 8px;">科室: {{item.department}}</text>
-          <text wx:if="{{item.team}}" style="margin-left: 8px;">班组: {{item.team}}</text>
-          <text wx:if="{{item.icaoDateShort}}" style="margin-left: 8px;">ICAO: {{item.icaoDateShort}}</text>
-          <text wx:if="{{item.medicalDateShort}}" style="margin-left: 8px;">体检: {{item.medicalDateShort}}</text>
-          <text wx:if="{{item.role === 'student' && item.groupEntryDate}}" style="margin-left: 8px;">进组: {{item.groupEntryDate}}</text>
-          <text wx:if="{{item.role === 'student' && item.isReleased && item.releasedAtShort}}" style="margin-left: 8px; color: var(--radar-green);">放单时间: {{item.releasedAtShort}}</text>
+        <view class="user-compact-meta">
+          <text>{{item.department || (item.role === 'student' ? '学员' : item.role === 'instructor' ? '教员' : '管理')}}</text>
+          <text wx:if="{{item.team}}"> · {{item.team}}</text>
+          <text wx:if="{{item.instructorLevel}}"> · {{item.instructorLevel}}</text>
+          <text wx:if="{{item.studentLevel}}"> · {{item.studentLevel}}</text>
         </view>
       </view>
-      
-      <view class="manager-user-actions">
-        <view bindtap="editUser" data-id="{{item.userId}}" class="btn btn-sm btn-secondary">编辑</view>
-        <view wx:if="{{item.role === 'student' && canRelease}}" bindtap="handleRelease" data-id="{{item.userId}}" data-released="{{item.isReleased}}" class="btn btn-sm {{item.isReleased ? 'btn-warning' : 'btn-success'}}">
-          {{item.isReleased ? '取消放单' : '放单'}}
-        </view>
-        <view bindtap="deleteUser" data-id="{{item.userId}}" class="btn btn-sm btn-danger">删除</view>
-      </view>
+      <view class="user-compact-arrow">›</view>
     </view>
   </view>
 
@@ -158,6 +144,26 @@
       <view class="form-group">
         <view class="form-label">姓名 <text style="color:var(--alert-red);">*</text></view>
         <input class="input" value="{{editingUser.name}}" placeholder="请输入姓名" data-field="name" bindinput="updateEditField" />
+      </view>
+
+      <view class="form-group">
+        <view class="form-label">性别 <text style="color:var(--alert-red);">*</text></view>
+        <picker bindchange="updateEditGender" value="{{editingUser.gender === '女' ? 1 : 0}}" range="{{['男', '女']}}">
+          <view class="picker-input input">
+            <text style="color:var(--text-primary);">{{editingUser.gender || '男'}}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+
+      <view class="form-group">
+        <view class="form-label">出生日期 <text style="color:var(--alert-red);">*</text></view>
+        <picker mode="date" value="{{editingUser.birthDate}}" bindchange="updateEditBirthDate">
+          <view class="picker-input input">
+            <text style="color:{{editingUser.birthDate ? 'var(--text-primary)' : 'var(--text-muted)'}};">{{editingUser.birthDate || '请选择出生日期'}}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
       </view>
 
       <view class="form-group">
@@ -205,6 +211,16 @@
         </picker>
       </view>
 
+      <view class="form-group" wx:if="{{editingUser.role === 'student'}}">
+        <view class="form-label">进组时间 <text style="color:var(--alert-red);">*</text></view>
+        <picker mode="date" value="{{editingUser.groupEntryDate}}" bindchange="updateEditGroupEntryDate">
+          <view class="picker-input input">
+            <text style="color:{{editingUser.groupEntryDate ? 'var(--text-primary)' : 'var(--text-muted)'}};">{{editingUser.groupEntryDate || '请选择进组时间'}}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+
       <view class="form-group" wx:if="{{editingUser.role === 'instructor'}}">
         <view class="form-label">教员等级</view>
         <picker bindchange="updateEditInstructorLevel" value="{{instructorLevelIndex}}" range="{{instructorLevels}}">
@@ -226,7 +242,7 @@
       </view>
 
       <view class="form-group">
-        <view class="form-label">体检日期 <text style="color:var(--text-muted);font-size:11px;">（选填，2年有效期）</text></view>
+        <view class="form-label">体检日期 <text style="color:var(--text-muted);font-size:11px;">（选填，2年有效期；40岁以上1年）</text></view>
         <picker mode="date" value="{{editingUser.medicalDate}}" bindchange="updateEditMedicalDate">
           <view class="picker-input input">
             <text style="color:{{editingUser.medicalDate ? 'var(--text-primary)' : 'var(--text-muted)'}};">{{editingUser.medicalDate || '请选择日期'}}</text>

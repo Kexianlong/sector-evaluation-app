@@ -1,0 +1,17 @@
+{
+  "version": "2.0",
+  "envId": "cloud1-d9g2y40ql2eb2cc4a",
+  "framework": {
+    "name": "sector-eval-miniprogram",
+    "plugins": {
+      "client": {
+        "use": "@cloudbase/framework-plugin-website",
+        "inputs": {
+          "codeRoot": "./",
+          "cloudPath": "/miniprogram",
+          "envVariables": {}
+        }
+      }
+    }
+  }
+}

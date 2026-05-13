@@ -12,8 +12,25 @@
         <view wx:if="{{department}}" class="profile-dept">{{department}}</view>
       </view>
     </view>
-    <view class="profile-actions">
-      <view class="btn btn-sm btn-secondary" bindtap="tapEdit">编辑资料</view>
+    <view class="profile-actions" wx:if="{{isSelf || canManage}}">
+      <view class="btn btn-sm btn-secondary" bindtap="tapEdit">{{isSelf ? '编辑资料' : '编辑信息'}}</view>
+    </view>
+  </view>
+
+  <!-- 到期提醒（个人） -->
+  <view wx:if="{{!isEditing && myReminders.length > 0}}" class="card reminder-summary-card" style="margin-bottom:12px;">
+    <view class="card-title" style="cursor:pointer;" bindtap="toggleMyReminders">
+      <text style="color:#ff4d4f;">⚠</text> {{isSelf ? '我的提醒' : '到期提醒'}}
+      <text style="margin-left:auto;font-size:12px;color:#4a5d75;">{{showMyReminders ? '收起 ▲' : '展开 ▼'}}</text>
+    </view>
+    <view wx:if="{{showMyReminders}}" class="reminder-list">
+      <view wx:for="{{myReminders}}" wx:key="type" class="reminder-item">
+        <view class="reminder-item-header">
+          <text style="font-weight:600;color:#e8ecf1;">{{item.label}}</text>
+          <view class="expiry-tag expiry-{{item.status}}">{{item.message}}</view>
+        </view>
+        <view wx:if="{{item.date}}" style="font-size:11px;color:#4a5d75;margin-top:4px;">获取时间: {{item.date}} | 到期时间: {{item.expireDate}}</view>
+      </view>
     </view>
   </view>
 
@@ -37,8 +54,30 @@
       <text class="profile-value">{{age !== null ? age + ' 岁' : '—'}}</text>
     </view>
     <view class="profile-field">
+      <text class="profile-label">手机号码</text>
+      <text class="profile-value">{{userInfo.phone || '—'}}</text>
+    </view>
+    <view class="profile-field">
       <text class="profile-label">职务 / 等级</text>
       <text class="profile-value">{{levelLabel || '—'}}</text>
+    </view>
+    <view wx:if="{{userInfo.role === 'student'}}" class="profile-field">
+      <text class="profile-label">被评价次数</text>
+      <text class="profile-value">{{evalCount}} 次</text>
+    </view>
+    <view wx:if="{{userInfo.role === 'instructor' || userInfo.role === 'deputy_director' || userInfo.role === 'supervisor'}}" class="profile-field">
+      <text class="profile-label">评分次数</text>
+      <text class="profile-value">{{scoreCount}} 次</text>
+    </view>
+    <view wx:if="{{userInfo.role === 'student' && responsibleInstructorName}}" class="profile-field">
+      <text class="profile-label">责任教员</text>
+      <text class="profile-value">{{responsibleInstructorName}}</text>
+    </view>
+    <view wx:if="{{userInfo.role === 'instructor' && responsibleStudentsNames.length > 0}}" class="profile-field">
+      <text class="profile-label">责任学员</text>
+      <view style="text-align:right;">
+        <text wx:for="{{responsibleStudentsNames}}" wx:key="*this" class="profile-value" style="display:inline-block;margin-left:4px;">{{item}}</text>
+      </view>
     </view>
   </view>
 
@@ -46,12 +85,12 @@
   <view wx:if="{{!isEditing}}" class="card">
     <view class="card-title">资质与提醒</view>
     <view class="profile-field">
-      <text class="profile-label">ICAO 到期</text>
-      <text class="profile-value {{!icaoExpiry ? '' : (icaoExpiry <= '2026-06-01' ? 'text-warning' : 'text-normal')}}">{{icaoExpiry || '—'}}</text>
+      <text class="profile-label">ICAO获取时间</text>
+      <text class="profile-value {{!icaoDate ? '' : (icaoDate <= '2026-06-01' ? 'text-warning' : 'text-normal')}}">{{icaoDate || '—'}}</text>
     </view>
     <view class="profile-field">
-      <text class="profile-label">体检到期</text>
-      <text class="profile-value {{!medicalExpiry ? '' : (medicalExpiry <= '2026-06-01' ? 'text-warning' : 'text-normal')}}">{{medicalExpiry || '—'}}</text>
+      <text class="profile-label">体检合格证获取时间</text>
+      <text class="profile-value {{!medicalDate ? '' : (medicalDate <= '2026-06-01' ? 'text-warning' : 'text-normal')}}">{{medicalDate || '—'}}</text>
     </view>
     <view class="profile-field" wx:if="{{age !== null}}">
       <text class="profile-label">体检有效期</text>
@@ -65,12 +104,26 @@
 
   <!-- 编辑表单 -->
   <view wx:if="{{isEditing}}" class="card">
+    <view wx:if="{{fromLogin}}" class="profile-firstlogin-banner">
+      <text class="profile-firstlogin-icon">📝</text>
+      <text class="profile-firstlogin-text">首次登录，请完善个人信息以便系统提供准确服务</text>
+    </view>
     <view class="card-title">编辑资料</view>
     <view class="form-group">
       <view class="form-label">头像</view>
       <view class="profile-edit-avatar-row" bindtap="chooseAvatar">
         <image class="profile-edit-avatar" src="{{editForm.photoUrl || avatarUrl}}" mode="aspectFill" />
-        <text class="aux-text">点击更换头像</text>
+        <text class="aux-text">点击上传头像</text>
+      </view>
+      <view class="profile-avatar-options">
+        <view class="profile-avatar-opt" bindtap="useDefaultAvatar" data-gender="男">
+          <image class="profile-avatar-opt-img" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2Ij48Y2lyY2xlIGN4PSI0OCIgY3k9IjQ4IiByPSI0OCIgZmlsbD0iIzFlM2E1ZiIvPjxjaXJjbGUgY3g9IjQ4IiBjeT0iMzYiIHI9IjE0IiBmaWxsPSIjNjBhNWZhIi8+PHBhdGggZD0iTTI0IDc2YzAtMTMuMjU1IDEwLjc0NS0yNCAyNC0yNHMyNCAxMC43NDUgMjQgMjQiIGZpbGw9IiM2MGE1ZmEiLz48L3N2Zz4=" mode="aspectFill" />
+          <text class="profile-avatar-opt-label">男</text>
+        </view>
+        <view class="profile-avatar-opt" bindtap="useDefaultAvatar" data-gender="女">
+          <image class="profile-avatar-opt-img" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2Ij48Y2lyY2xlIGN4PSI0OCIgY3k9IjQ4IiByPSI0OCIgZmlsbD0iIzNmMWUzYSIvPjxjaXJjbGUgY3g9IjQ4IiBjeT0iMzYiIHI9IjE0IiBmaWxsPSIjZjQ3MmI2Ii8+PHBhdGggZD0iTTI0IDc2YzAtMTMuMjU1IDEwLjc0NS0yNCAyNC0yNHMyNCAxMC43NDUgMjQgMjQiIGZpbGw9IiNmNDcyYjYiLz48L3N2Zz4=" mode="aspectFill" />
+          <text class="profile-avatar-opt-label">女</text>
+        </view>
       </view>
     </view>
     <view class="form-group">
@@ -90,15 +143,19 @@
       </picker>
     </view>
     <view class="form-group">
-      <view class="form-label">ICAO 到期时间</view>
-      <picker mode="date" value="{{editForm.icaoExpiry}}" data-field="icaoExpiry" bindchange="onInputChange">
-        <view class="input">{{editForm.icaoExpiry || '请选择'}}</view>
+      <view class="form-label">手机号码 <text style="color:var(--alert-red);">*</text></view>
+      <input class="input" value="{{editForm.phone}}" data-field="phone" bindinput="onInputChange" placeholder="请输入手机号" type="number" maxlength="11" />
+    </view>
+    <view class="form-group">
+      <view class="form-label">ICAO获取时间<text style="color:#8a9bb0;font-size:11px;margin-left:4px;">（选填，3年有效期）</text></view>
+      <picker mode="date" value="{{editForm.icaoDate}}" data-field="icaoDate" bindchange="onInputChange">
+        <view class="input">{{editForm.icaoDate || '请选择'}}</view>
       </picker>
     </view>
     <view class="form-group">
-      <view class="form-label">体检到期时间</view>
-      <picker mode="date" value="{{editForm.medicalExpiry}}" data-field="medicalExpiry" bindchange="onInputChange">
-        <view class="input">{{editForm.medicalExpiry || '请选择'}}</view>
+      <view class="form-label">体检合格证获取时间<text style="color:#8a9bb0;font-size:11px;margin-left:4px;">（选填，2年有效期）</text></view>
+      <picker mode="date" value="{{editForm.medicalDate}}" data-field="medicalDate" bindchange="onInputChange">
+        <view class="input">{{editForm.medicalDate || '请选择'}}</view>
       </picker>
     </view>
     <view class="form-group" wx:if="{{userInfo.role === 'student'}}">
@@ -107,9 +164,38 @@
         <view class="input">{{editForm.groupEntryDate || '请选择'}}</view>
       </picker>
     </view>
+    <!-- 编辑时的责任关系 -->
+    <view class="form-group" wx:if="{{userInfo.role === 'student' && instructorList.length > 0}}">
+      <view class="form-label">责任教员</view>
+      <picker bindchange="onEditResponsibleInstructorChange" value="{{editResponsibleInstructorIndex}}" range="{{instructorList}}">
+        <view class="input">{{editForm.responsibleInstructorName || '请选择责任教员'}}</view>
+      </picker>
+    </view>
+    <view class="form-group" wx:if="{{userInfo.role === 'instructor' && studentList.length > 0}}">
+      <view class="form-label">责任学员</view>
+      <picker bindchange="onEditResponsibleStudentChange" value="{{editResponsibleStudentIndex}}" range="{{studentList}}">
+        <view class="input">{{editForm.responsibleStudentPickerLabel || '请选择责任学员'}}</view>
+      </picker>
+      <view wx:if="{{editForm.responsibleStudentsInfo.length > 0}}" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+        <view wx:for="{{editForm.responsibleStudentsInfo}}" wx:key="userId" class="profile-tag-blue">
+          <text>{{item.name}}</text>
+          <text style="margin-left:4px;color:var(--text-muted);" bindtap="removeEditResponsibleStudent" data-id="{{item.userId}}">✕</text>
+        </view>
+      </view>
+    </view>
     <view class="profile-edit-actions">
-      <view class="btn btn-primary btn-block" bindtap="saveProfile">保存</view>
+      <view class="btn btn-primary btn-block" bindtap="{{fromLogin ? 'onSaveProfile' : 'saveProfile'}}">保存</view>
       <view class="btn btn-secondary btn-block" style="margin-top:10px;" bindtap="cancelEdit">取消</view>
+    </view>
+  </view>
+
+  <!-- 管理操作（查看他人时） -->
+  <view wx:if="{{!isSelf && canManage}}" class="card">
+    <view class="card-title">管理操作</view>
+    <view class="profile-manage-actions">
+      <view class="btn btn-sm btn-secondary" bindtap="tapManageEdit">编辑信息</view>
+      <view wx:if="{{userInfo.role === 'student'}}" class="btn btn-sm {{userInfo.isReleased ? 'btn-warning' : 'btn-success'}}" bindtap="tapManageRelease">{{userInfo.isReleased ? '取消放单' : '设置放单'}}</view>
+      <view class="btn btn-sm btn-danger" bindtap="tapManageDelete">删除用户</view>
     </view>
   </view>
 </view>

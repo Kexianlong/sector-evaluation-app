@@ -1,0 +1,24 @@
+{
+  "name": "sector-evaluation-miniprogram",
+  "version": "1.0.0",
+  "description": "能力考核与评估平台 - 微信小程序前端",
+  "scripts": {
+    "deploy:dev": "echo '请使用微信开发者工具 → 上传 → 设置为体验版'",
+    "deploy:prod": "echo '请使用微信开发者工具 → 上传 → 提交微信审核'",
+    "cloudbase:deploy": "echo '如需部署静态资源到 CloudBase 托管，请先安装 @cloudbase/cli: npm i -g @cloudbase/cli'",
+    "lint": "echo '暂无 lint 配置，建议后续添加 eslint'"
+  },
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "keywords": [
+    "miniprogram",
+    "wechat",
+    "cloudbase",
+    "sector-evaluation"
+  ],
+  "author": "",
+  "license": "UNLICENSED"
+}

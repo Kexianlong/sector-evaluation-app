@@ -2,7 +2,6 @@
   "pages": [
     "pages/login/login",
     "pages/radar/radar",
-    "pages/trend/trend",
     "pages/mygrades/mygrades",
     "pages/score/score",
     "pages/overview/overview",
@@ -13,7 +12,11 @@
     "pages/instructor-history/instructor-history",
     "pages/profile/profile",
     "pages/score-config/score-config",
-    "pages/reminders/reminders"
+    "pages/reminders/reminders",
+    "pages/score-result/score-result",
+    "pages/student-profile/student-profile",
+    "pages/export/export",
+    "pages/score-detail/score-detail"
   ],
   "window": {
     "backgroundTextStyle": "light",
@@ -29,11 +32,11 @@
     "backgroundColor": "#132238",
     "borderStyle": "black",
     "list": [
-      { "pagePath": "pages/radar/radar", "text": "学员详情" },
-      { "pagePath": "pages/trend/trend", "text": "趋势" },
+      { "pagePath": "pages/radar/radar", "text": "成绩" },
       { "pagePath": "pages/score/score", "text": "数据" },
-      { "pagePath": "pages/mygrades/mygrades", "text": "成绩" },
-      { "pagePath": "pages/overview/overview", "text": "管理" }
+      { "pagePath": "pages/mygrades/mygrades", "text": "学员详情" },
+      { "pagePath": "pages/overview/overview", "text": "系统设置" },
+      { "pagePath": "pages/analysis/analysis", "text": "数据分析" }
     ]
   },
   "style": "v2",

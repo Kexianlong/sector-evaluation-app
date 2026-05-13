@@ -1,6 +1,6 @@
 const app = getApp();
 const { MANAGER_ROLES, ROLE_LABELS, getManageableRoles, getRoleLabel, navRoleCaption, getUserInfo } = require('../../utils/roles.js');
-const { MOCK_USERS } = require('../../utils/mockData.js');
+const { canManageUser, canRelease: canReleasePerm } = require('../../utils/permission.js');
 const { normalizeApiResponse } = require('../../utils/api.js');
 
 const STUDENT_LEVEL_OPTIONS = [
@@ -8,6 +8,18 @@ const STUDENT_LEVEL_OPTIONS = [
   '中阶一段', '中阶二段', '中阶三段',
   '高阶一段', '高阶二段', '高阶三段'
 ];
+
+const AVATAR_DEFAULT = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2Ij48Y2lyY2xlIGN4PSI0OCIgY3k9IjQ4IiByPSI0OCIgZmlsbD0iIzFhMmQ0NSIvPjxjaXJjbGUgY3g9IjQ4IiBjeT0iMzYiIHI9IjE0IiBmaWxsPSIjOGE5YmIwIi8+PHBhdGggZD0iTTI0IDc2YzAtMTMuMjU1IDEwLjc0NS0yNCAyNC0yNHMyNCAxMC43NDUgMjQgMjQiIGZpbGw9IiM4YTliYjAiLz48L3N2Zz4=';
+const AVATAR_MALE = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2Ij48Y2lyY2xlIGN4PSI0OCIgY3k9IjQ4IiByPSI0OCIgZmlsbD0iIzFlM2E1ZiIvPjxjaXJjbGUgY3g9IjQ4IiBjeT0iMzYiIHI9IjE0IiBmaWxsPSIjNjBhNWZhIi8+PHBhdGggZD0iTTI0IDc2YzAtMTMuMjU1IDEwLjc0NS0yNCAyNC0yNHMyNCAxMC43NDUgMjQgMjQiIGZpbGw9IiM2MGE1ZmEiLz48L3N2Zz4=';
+const AVATAR_FEMALE = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2Ij48Y2lyY2xlIGN4PSI0OCIgY3k9IjQ4IiByPSI0OCIgZmlsbD0iIzNmMWUzYSIvPjxjaXJjbGUgY3g9IjQ4IiBjeT0iMzYiIHI9IjE0IiBmaWxsPSIjZjQ3MmI2Ii8+PHBhdGggZD0iTTI0IDc2YzAtMTMuMjU1IDEwLjc0NS0yNCAyNC0yNHMyNCAxMC43NDUgMjQgMjQiIGZpbGw9IiNmNDcyYjYiLz48L3N2Zz4=';
+
+function getAvatarUrl(user) {
+  if (!user) return AVATAR_DEFAULT;
+  if (user.photoUrl) return user.photoUrl;
+  if (user.gender === '女') return AVATAR_FEMALE;
+  if (user.gender === '男') return AVATAR_MALE;
+  return AVATAR_DEFAULT;
+}
 
 Page({
   data: {
@@ -39,7 +51,7 @@ Page({
     showReminders: false
   },
 
-  onLoad() {
+  onLoad(options) {
     let userInfo = getUserInfo();
     if (!userInfo || !MANAGER_ROLES.includes(userInfo.role)) {
       wx.showToast({ title: '无权限', icon: 'none' });
@@ -47,18 +59,37 @@ Page({
       return;
     }
     const manageableRoles = getManageableRoles(userInfo.role);
-    const canRelease = ['supervisor', 'deputy_director', 'department_head', 'center_director'].includes(userInfo.role);
+    const canRelease = canReleasePerm(userInfo);
     const isCenterDirector = userInfo.role === 'center_director';
     this.setData({
       userInfo,
       isCenterDirector: isCenterDirector,
-      roleLabel: navRoleCaption(userInfo),
+      roleLabel: getRoleLabel(userInfo.role),
       manageableRoleList: manageableRoles.map(r => getRoleLabel(r)),
       manageableRoleValues: manageableRoles,
       canRelease
     });
     this.loadUsers();
     this.loadReminders();
+    // 支持从 profile 页面传入 editUserId 自动打开编辑弹窗
+    if (options && options.editUserId) {
+      const editUserId = options.editUserId;
+      const tryOpenEdit = () => {
+        const user = this.data.users.find(u => u.userId === editUserId);
+        if (user) {
+          this.editUser({ currentTarget: { dataset: { id: editUserId } } });
+        } else if (this.data.loading) {
+          setTimeout(tryOpenEdit, 300);
+        }
+      };
+      setTimeout(tryOpenEdit, 300);
+    }
+  },
+
+  goToProfile(e) {
+    const userId = e.currentTarget.dataset.id;
+    if (!userId) return;
+    wx.navigateTo({ url: '/pages/profile/profile?userId=' + userId });
   },
 
   // 计算到期状态
@@ -92,6 +123,13 @@ Page({
 
   toggleReminders() {
     this.setData({ showReminders: !this.data.showReminders });
+  },
+
+  goToScore(e) {
+    const userId = e.currentTarget.dataset.id;
+    if (!userId) return;
+    app.globalData.pendingTabParams = { preselectStudent: userId };
+    wx.switchTab({ url: '/pages/score/score' });
   },
 
   _extractOptionsFromUsers(users) {
@@ -150,13 +188,8 @@ Page({
         this.updateStats();
       }
     } catch (e) {
-      console.log('[users] 请求失败，使用模拟数据');
-      const users = MOCK_USERS;
-      const opts = this._extractOptionsFromUsers(users);
-      const _setData2 = Object.assign({ users: users }, opts);
-      this.setData(_setData2);
-      this.updateFilteredUsers();
-      this.updateStats();
+      console.log('[users] 请求失败', e);
+      wx.showToast({ title: '加载失败', icon: 'none' });
     } finally {
       this.setData({ loading: false });
     }
@@ -184,19 +217,35 @@ Page({
     } else if (releaseFilter === 'not_released') {
       result = result.filter(u => u.role !== 'student' || !u.isReleased);
     }
-    // 预处理放单时间短格式 + ICAO/体检到期状态
+    // 预处理放单时间短格式 + ICAO/体检到期状态 + 待关注标记
     result = result.map(function(u) {
       const o = Object.assign({}, u);
       o.releasedAtShort = u.releasedAt ? u.releasedAt.slice(0, 10) : '';
       // ICAO到期状态
       const icaoSt = self.calcExpiryStatus(u.icaoDate, 3, 6);
       o.icaoExpiry = icaoSt;
-      // 体检到期状态
-      const medSt = self.calcExpiryStatus(u.medicalDate, 2, 3);
+      // 体检到期状态：40岁以上有效期1年，其余2年
+      let medicalValidYears = 2;
+      if (u.birthDate) {
+        const birth = new Date(u.birthDate);
+        const age = new Date().getFullYear() - birth.getFullYear();
+        if (age >= 40) medicalValidYears = 1;
+      }
+      const medSt = self.calcExpiryStatus(u.medicalDate, medicalValidYears, 3);
       o.medicalExpiry = medSt;
       // 日期短格式
       o.icaoDateShort = u.icaoDate ? u.icaoDate.slice(0, 10) : '';
       o.medicalDateShort = u.medicalDate ? u.medicalDate.slice(0, 10) : '';
+      // 待关注标记
+      const attentionReasons = [];
+      if (o.role === 'student' && !o.isReleased) attentionReasons.push('未放单');
+      if (icaoSt.status === 'expired') attentionReasons.push('ICAO过期');
+      if (icaoSt.status === 'warning') attentionReasons.push('ICAO即将到期');
+      if (medSt.status === 'expired') attentionReasons.push('体检过期');
+      if (medSt.status === 'warning') attentionReasons.push('体检即将到期');
+      o.attentionReasons = attentionReasons;
+      o.needsAttention = attentionReasons.length > 0;
+      o.avatarUrl = getAvatarUrl(u);
       return o;
     });
     this.setData({ filteredUsers: result });
@@ -231,27 +280,7 @@ Page({
     if (!confirmed) return;
     wx.showLoading({ title: '处理中...' });
     try {
-      // mock模式：直接修改本地数据
-      if (app.globalData.mockMode) {
-        let users = this.data.users.slice();
-        for (let i = 0; i < users.length; i++) {
-          if (users[i].userId === userId) {
-            users[i] = Object.assign({}, users[i], { isReleased: !isReleased, releasedAt: !isReleased ? new Date().toISOString() : null });
-            break;
-          }
-        }
-        for (let j = 0; j < MOCK_USERS.length; j++) {
-          if (MOCK_USERS[j].userId === userId) {
-            Object.assign(MOCK_USERS[j], { isReleased: !isReleased, releasedAt: !isReleased ? new Date().toISOString() : null });
-            break;
-          }
-        }
-        this.setData({ users: users });
-        this.updateFilteredUsers();
-        wx.showToast({ title: isReleased ? '已取消放单' : '放单成功', icon: 'success' });
-        wx.hideLoading();
-        return;
-      }
+      
       const releaseRes = await app.request({
         url: `/users/${userId}/release`,
         method: 'PUT',
@@ -393,6 +422,25 @@ Page({
     });
   },
 
+  updateEditGender(e) {
+    const genders = ['男', '女'];
+    this.setData({
+      'editingUser.gender': genders[Number(e.detail.value)]
+    });
+  },
+
+  updateEditBirthDate(e) {
+    this.setData({
+      'editingUser.birthDate': e.detail.value
+    });
+  },
+
+  updateEditGroupEntryDate(e) {
+    this.setData({
+      'editingUser.groupEntryDate': e.detail.value
+    });
+  },
+
   async saveUser() {
     const { editingUser, isNew } = this.data;
     if (!editingUser.name) {
@@ -442,37 +490,7 @@ Page({
         payload.password = editingUser.password;
       }
 
-      // mock模式：直接在本地数组上修改，避免loadUsers重新加载静态数据
-      if (app.globalData.mockMode) {
-        let users = this.data.users.slice();
-        if (isNew) {
-          const newUser = Object.assign({}, payload, { userId: 'mock_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) });
-          users.push(newUser);
-          MOCK_USERS.push(newUser);
-        } else {
-          let editIdx = -1;
-          for (let i = 0; i < users.length; i++) {
-            if (users[i].userId === editingUser.userId) { editIdx = i; break; }
-          }
-          if (editIdx >= 0) {
-            users[editIdx] = Object.assign({}, users[editIdx], payload);
-          }
-          // 同步到 MOCK_USERS 源数组（让 loadUsers 也能读到更新）
-          for (let j = 0; j < MOCK_USERS.length; j++) {
-            if (MOCK_USERS[j].userId === editingUser.userId) {
-              Object.assign(MOCK_USERS[j], payload);
-              break;
-            }
-          }
-        }
-        const opts = this._extractOptionsFromUsers(users);
-        this.setData({ users: users, editing: false, isNew: false, editingUser: null });
-        this.updateFilteredUsers();
-        this.updateStats();
-        wx.showToast({ title: '保存成功', icon: 'success' });
-        wx.hideLoading();
-        return;
-      }
+      
 
       if (isNew) {
         await app.request({
@@ -518,19 +536,7 @@ Page({
       success: async (res) => {
         if (res.confirm) {
           try {
-            // mock模式：直接从本地数组删除
-            if (app.globalData.mockMode) {
-              const users = this.data.users.filter(function(u) { return u.userId !== userId; });
-              for (let k = MOCK_USERS.length - 1; k >= 0; k--) {
-                if (MOCK_USERS[k].userId === userId) { MOCK_USERS.splice(k, 1); break; }
-              }
-              const opts = this._extractOptionsFromUsers(users);
-              this.setData({ users: users });
-              this.updateFilteredUsers();
-              this.updateStats();
-              wx.showToast({ title: '删除成功', icon: 'success' });
-              return;
-            }
+            
             await app.request({ url: `/users/${userId}`, method: 'DELETE' });
             wx.showToast({ title: '删除成功', icon: 'success' });
             this.loadUsers();

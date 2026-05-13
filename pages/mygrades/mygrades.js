@@ -1,12 +1,43 @@
 const app = getApp();
-const { isStudentRole, isInstructorRole, isManagerRole, navRoleCaption, getUserInfo } = require('../../utils/roles.js');
+const { isStudentRole, isInstructorRole, isManagerRole, navRoleCaption, normalizeInstructorLevel, getUserInfo, getRoleLabel } = require('../../utils/roles.js');
 const { normalizeScoreHistoryRecords } = require('../../utils/scoreHistory.js');
 const { normalizeApiResponse } = require('../../utils/api.js');
+const { buildCategoryTrend, buildDetailItems, computeRate } = require('../../utils/categoryDetail.js');
 
 function tabBarInit(page) {
   if (typeof page.getTabBar === 'function' && page.getTabBar()) {
     page.getTabBar().init();
   }
+}
+
+function computeAge(birthDate) {
+  if (!birthDate) return null;
+  const birth = new Date(birthDate);
+  if (isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const m = now.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+  return age;
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  const date = new Date(d);
+  if (isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+const AVATAR_DEFAULT = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2Ij48Y2lyY2xlIGN4PSI0OCIgY3k9IjQ4IiByPSI0OCIgZmlsbD0iIzFhMmQ0NSIvPjxjaXJjbGUgY3g9IjQ4IiBjeT0iMzYiIHI9IjE0IiBmaWxsPSIjOGE5YmIwIi8+PHBhdGggZD0iTTI0IDc2YzAtMTMuMjU1IDEwLjc0NS0yNCAyNC0yNHMyNCAxMC43NDUgMjQgMjQiIGZpbGw9IiM4YTliYjAiLz48L3N2Zz4=';
+const AVATAR_MALE = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2Ij48Y2lyY2xlIGN4PSI0OCIgY3k9IjQ4IiByPSI0OCIgZmlsbD0iIzFlM2E1ZiIvPjxjaXJjbGUgY3g9IjQ4IiBjeT0iMzYiIHI9IjE0IiBmaWxsPSIjNjBhNWZhIi8+PHBhdGggZD0iTTI0IDc2YzAtMTMuMjU1IDEwLjc0NS0yNCAyNC0yNHMyNCAxMC43NDUgMjQgMjQiIGZpbGw9IiM2MGE1ZmEiLz48L3N2Zz4=';
+const AVATAR_FEMALE = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2Ij48Y2lyY2xlIGN4PSI0OCIgY3k9IjQ4IiByPSI0OCIgZmlsbD0iIzNmMWUzYSIvPjxjaXJjbGUgY3g9IjQ4IiBjeT0iMzYiIHI9IjE0IiBmaWxsPSIjZjQ3MmI2Ii8+PHBhdGggZD0iTTI0IDc2YzAtMTMuMjU1IDEwLjc0NS0yNCAyNC0yNHMyNCAxMC43NDUgMjQgMjQiIGZpbGw9IiNmNDcyYjYiLz48L3N2Zz4=';
+
+function getAvatarUrl(userInfo) {
+  if (!userInfo) return AVATAR_DEFAULT;
+  if (userInfo.photoUrl) return userInfo.photoUrl;
+  if (userInfo.gender === '女') return AVATAR_FEMALE;
+  if (userInfo.gender === '男') return AVATAR_MALE;
+  return AVATAR_DEFAULT;
 }
 
 function getGradeText(pct) {
@@ -23,13 +54,16 @@ function getGradeClass(pct) {
   return 'score-fail';
 }
 
-function enrichRecord(record, studentName) {
+function enrichRecord(record, studentName, hideInstructor) {
   if (!record) return null;
   const pct = record.maxTotal > 0 ? Math.round((record.total / record.maxTotal) * 100) : 0;
   record._grade = getGradeText(pct);
   record._gradeClass = getGradeClass(pct);
   record._pct = pct;
   record.studentName = studentName || record.studentName || '未命名';
+  if (hideInstructor) {
+    record.instructorName = '';
+  }
 
   const scoresArr = record.scoresArray || [];
   record._scorePairs = scoresArr.map(function(s) {
@@ -76,6 +110,12 @@ Page({
   data: {
     userInfo: null,
     roleLabel: '',
+    levelLabel: '',
+    avatarUrl: '',
+    age: null,
+    groupEntryDate: '',
+    icaoExpiry: '',
+    medicalExpiry: '',
     canViewAll: false,
     students: [],
     sectors: [],
@@ -97,7 +137,18 @@ Page({
     detailLoading: false,
     detailExpandedId: null,
     detailExpandedDeductId: '',
-    historyStats: { count: 0, avgScore: 0, bestSector: '-', bestGrade: '-' }
+    historyStats: { count: 0, avgScore: 0, bestSector: '-', bestGrade: '-' },
+    studentHistoryMap: {},
+    allStudentTrendData: {},
+
+    // 分类详情弹窗
+    showCategoryPopup: false,
+    categoryPopupTitle: '',
+    categoryPopupTrend: [],
+    categoryPopupItems: [],
+    categoryPopupIndex: -1,
+    categoryPopupRate: 0,
+    categoryPopupRecord: null
   },
 
   _refreshing: false,
@@ -105,12 +156,21 @@ Page({
   _drawing: false,
 
   onLoad() {
-    let u = getUserInfo();
+    let u = getUserInfo() || {};
     const canViewAll = isInstructorRole(u && u.role) || isManagerRole(u && u.role);
+    const levelLabel = u.role === 'student' ? (u.studentLevel || u.level || '') : (u.role === 'instructor' ? normalizeInstructorLevel(u.instructorLevel || u.level) : '');
     this.setData({
       userInfo: u,
-      roleLabel: navRoleCaption(u),
-      canViewAll: canViewAll
+      roleLabel: getRoleLabel(u.role),
+      levelLabel: levelLabel,
+      canViewAll: canViewAll,
+      avatarUrl: getAvatarUrl(u),
+      age: computeAge(u.birthDate),
+      gender: u.gender,
+      studentLevel: u.studentLevel || u.level || '',
+      groupEntryDate: formatDate(u.groupEntryDate),
+      icaoExpiry: formatDate(u.icaoExpiry),
+      medicalExpiry: formatDate(u.medicalExpiry)
     });
     this.loadData();
     this._launchTime = Date.now();
@@ -118,9 +178,21 @@ Page({
 
   onShow() {
     tabBarInit(this);
-    let u = getUserInfo();
+    let u = getUserInfo() || {};
     const canViewAll = isInstructorRole(u && u.role) || isManagerRole(u && u.role);
-    this.setData({ userInfo: u, canViewAll: canViewAll });
+    const levelLabel = u.role === 'student' ? (u.studentLevel || u.level || '') : (u.role === 'instructor' ? normalizeInstructorLevel(u.instructorLevel || u.level) : '');
+    this.setData({
+      userInfo: u,
+      canViewAll: canViewAll,
+      avatarUrl: getAvatarUrl(u),
+      age: computeAge(u && u.birthDate),
+      gender: (u && u.gender) || '',
+      studentLevel: (u && (u.studentLevel || u.level)) || '',
+      levelLabel: levelLabel,
+      groupEntryDate: formatDate(u && u.groupEntryDate),
+      icaoExpiry: formatDate(u && u.icaoExpiry),
+      medicalExpiry: formatDate(u && u.medicalExpiry)
+    });
 
     if (this._refreshing) return;
     if (this._launchTime && Date.now() - this._launchTime < 2000) return;
@@ -182,23 +254,33 @@ Page({
     this.setData({ loading: true, loadError: '' });
 
     const results = [];
+    const historyMap = {};
+    const allTrendData = {};
     for (let i = 0; i < students.length; i++) {
       const s = students[i];
       try {
         const res = normalizeApiResponse(await app.request({ url: '/scores/student/' + s.userId + '/history' }));
         const raw = Array.isArray(res) ? res : (res && Array.isArray(res.data) ? res.data : []);
         const records = normalizeScoreHistoryRecords(raw);
+        historyMap[s.userId] = records;
+        allTrendData[s.userId] = this._buildSectorTrendData(records);
         if (records.length > 0) {
-          const latest = enrichRecord(records[0], s.name);
-          if (latest) results.push(latest);
+          const latest = enrichRecord(records[0], s.name, !this.data.canViewAll);
+          if (latest) {
+            latest.studentId = s.userId;
+            latest.studentName = s.name || latest.studentName || '未命名';
+            results.push(latest);
+          }
         }
       } catch (e) {
         // skip
       }
     }
 
-    this.setData({ latestScores: results, loading: false });
+    this.setData({ latestScores: results, studentHistoryMap: historyMap, allStudentTrendData: allTrendData, loading: false });
     this.computeFilteredScores();
+    const self = this;
+    wx.nextTick(function() { self.drawAllTrends(); });
   },
 
   computeFilteredScores() {
@@ -226,6 +308,214 @@ Page({
         break;
     }
     this.setData({ filteredScores: result });
+    const self = this;
+    wx.nextTick(function() { self.drawAllTrends(); });
+  },
+
+  drawAllTrends() {
+    const data = this.data.allStudentTrendData;
+    const self = this;
+    Object.keys(data).forEach(function(studentId) {
+      const trends = data[studentId];
+      if (!trends || trends.length === 0) return;
+      trends.forEach(function(sector, idx) {
+        setTimeout(function() { self._drawSingleTrend(studentId, sector); }, idx * 100);
+      });
+    });
+  },
+
+  _buildSectorTrendData(scores) {
+    const map = {};
+    scores.forEach(function(sc) {
+      const sid = sc.sectorId || 'unknown';
+      if (!map[sid]) {
+        map[sid] = { sectorId: sid, sectorName: sc.sectorName || sid, scores: [] };
+      }
+      map[sid].scores.push({
+        date: sc.date || '',
+        shortDate: (sc.date || '').slice(5, 10),
+        totalScore: sc.totalScore || 0,
+        grade: sc.grade || '',
+        record: sc
+      });
+    });
+    const result = Object.keys(map).map(function(key) {
+      const item = map[key];
+      item.scores.sort(function(a, b) { return (a.date || '').localeCompare(b.date || ''); });
+      const totals = item.scores.map(function(s) { return s.totalScore; });
+      const sum = totals.reduce(function(a, b) { return a + b; }, 0);
+      return {
+        sectorId: item.sectorId,
+        sectorName: item.sectorName,
+        scores: item.scores,
+        maxScore: totals.length > 0 ? Math.max.apply(null, totals) : 0,
+        minScore: totals.length > 0 ? Math.min.apply(null, totals) : 0,
+        avgScore: totals.length > 0 ? Math.round(sum / totals.length) : 0
+      };
+    });
+    return result;
+  },
+
+  drawStudentTrends(studentId) {
+    const data = this.data.expandedStudentTrendData[studentId];
+    if (!data || data.length === 0) return;
+    const self = this;
+    data.forEach(function(sector, idx) {
+      setTimeout(function() { self._drawSingleTrend(studentId, sector); }, idx * 100);
+    });
+  },
+
+  _drawSingleTrend(studentId, sector) {
+    const canvasId = 'trendCanvas_' + studentId + '_' + sector.sectorId;
+    const query = wx.createSelectorQuery().in(this);
+    query.select('#' + canvasId).fields({ node: true, size: true }).exec(function(res) {
+      if (!res || !res[0] || !res[0].node) return;
+      const canvas = res[0].node;
+      const ctx = canvas.getContext('2d');
+      const dpr = (wx.getWindowInfo ? wx.getWindowInfo().pixelRatio : wx.getSystemInfoSync().pixelRatio) || 2;
+      const width = res[0].width;
+      const height = res[0].height;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      ctx.scale(dpr, dpr);
+
+      const data = sector.scores;
+      if (!data || data.length < 2) {
+        ctx.clearRect(0, 0, width, height);
+        if (data && data.length === 1) {
+          const cx = width / 2;
+          const cy = height / 2;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+          ctx.fillStyle = '#3b82f6';
+          ctx.fill();
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '12px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(data[0].shortDate + ' ' + data[0].totalScore + '分', cx, cy + 24);
+        }
+        return;
+      }
+
+      const padL = 40, padR = 16, padT = 16, padB = 28;
+      const chartW = width - padL - padR;
+      const chartH = height - padT - padB;
+      const scores = data.map(function(d) { return d.totalScore; });
+      const minS = Math.min.apply(null, scores) - 5;
+      const maxS = Math.max.apply(null, scores) + 5;
+      const range = maxS - minS || 1;
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.strokeStyle = '#1e2d42';
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i <= 4; i++) {
+        const y = padT + (chartH / 4) * i;
+        ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(width - padR, y); ctx.stroke();
+      }
+
+      const points = data.map(function(d, i) {
+        return {
+          x: padL + (chartW / (data.length - 1)) * i,
+          y: padT + chartH - ((d.totalScore - minS) / range) * chartH
+        };
+      });
+
+      const grad = ctx.createLinearGradient(0, padT, 0, padT + chartH);
+      grad.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
+      grad.addColorStop(1, 'rgba(59, 130, 246, 0.01)');
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, padT + chartH);
+      points.forEach(function(p) { ctx.lineTo(p.x, p.y); });
+      ctx.lineTo(points[points.length - 1].x, padT + chartH);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 2;
+      ctx.lineJoin = 'round';
+      points.forEach(function(p, i) { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+      ctx.stroke();
+
+      points.forEach(function(p) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#3b82f6';
+        ctx.fill();
+        ctx.strokeStyle = '#0f1724';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      });
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '9px sans-serif';
+      ctx.textAlign = 'center';
+      data.forEach(function(d, i) {
+        ctx.fillText(d.shortDate, points[i].x, height - 6);
+      });
+
+      ctx.textAlign = 'right';
+      for (let i = 0; i <= 4; i++) {
+        const val = Math.round(maxS - (range / 4) * i);
+        const y = padT + (chartH / 4) * i;
+        ctx.fillText(val, padL - 4, y + 3);
+      }
+    });
+  },
+
+  onChooseAvatar(e) {
+    const tempUrl = e.detail.avatarUrl;
+    if (!tempUrl) return;
+    wx.showLoading({ title: '上传中' });
+    wx.uploadFile({
+      url: `${app.globalData.apiBaseUrl || ''}/upload/avatar`,
+      filePath: tempUrl,
+      name: 'file',
+      header: {
+        'Authorization': wx.getStorageSync('token') || ''
+      },
+      success: (upRes) => {
+        let data = upRes.data;
+        try { data = JSON.parse(data); } catch (err) {}
+        if (data && data.url) {
+          const u = this.data.userInfo || {};
+          u.photoUrl = data.url;
+          this.setData({ avatarUrl: data.url, userInfo: u });
+          wx.showToast({ title: '上传成功', icon: 'success' });
+        } else {
+          wx.showToast({ title: '上传失败', icon: 'none' });
+        }
+      },
+      fail: () => wx.showToast({ title: '上传失败', icon: 'none' }),
+      complete: () => wx.hideLoading()
+    });
+  },
+
+  goToSectorHistory(e) {
+    const studentId = e.currentTarget.dataset.studentId;
+    const sectorId = e.currentTarget.dataset.sectorId;
+    const studentName = e.currentTarget.dataset.studentName || '';
+    app.globalData.pendingTabParams = {
+      studentId: studentId,
+      sectorId: sectorId,
+      studentName: studentName
+    };
+    wx.switchTab({ url: '/pages/radar/radar' });
+  },
+
+  goToRadarByScore(e) {
+    const studentId = e.currentTarget.dataset.studentId;
+    const sectorId = e.currentTarget.dataset.sectorId;
+    const date = e.currentTarget.dataset.date;
+    const studentName = e.currentTarget.dataset.studentName || '';
+    app.globalData.pendingTabParams = {
+      studentId: studentId,
+      sectorId: sectorId,
+      date: date,
+      studentName: studentName
+    };
+    wx.switchTab({ url: '/pages/radar/radar' });
   },
 
   onNameFilterChange(e) {
@@ -260,10 +550,6 @@ Page({
     });
   },
 
-  onTestLogout() {
-    getApp().logout();
-  },
-
   openStudentHistory(e) {
     if (!this.data.canViewAll) return;
     const studentId = e.currentTarget.dataset.studentId;
@@ -284,7 +570,8 @@ Page({
     try {
       const res = normalizeApiResponse(await app.request({ url: '/scores/student/' + studentId + '/history' }));
       const raw = Array.isArray(res) ? res : (res && Array.isArray(res.data) ? res.data : []);
-      const records = normalizeScoreHistoryRecords(raw).map(function(h) { return enrichRecord(h); });
+      const hideInst = !this.data.canViewAll;
+      const records = normalizeScoreHistoryRecords(raw).map(function(h) { return enrichRecord(h, undefined, hideInst); });
 
       let avgScore = 0, bestSector = '-', bestGrade = '-';
       if (records.length > 0) {
@@ -328,6 +615,48 @@ Page({
   toggleDetailDeductExpand(e) {
     const key = e.currentTarget.dataset.key;
     this.setData({ detailExpandedDeductId: this.data.detailExpandedDeductId === key ? '' : key });
+  },
+
+  showCategoryDetail(e) {
+    const recordIndex = e.currentTarget.dataset.recordIndex;
+    const scoreIndex = e.currentTarget.dataset.scoreIndex;
+    const record = this.data.filteredScores[recordIndex];
+    const sp = record && record._scorePairs ? record._scorePairs[scoreIndex] : null;
+    if (!record || !sp) return;
+    const catName = sp.name;
+    const studentId = record.studentId;
+    const historyRecords = this.data.studentHistoryMap[studentId] || [];
+    const trend = buildCategoryTrend(historyRecords, catName);
+    const latestRec = trend.length > 0 ? trend[trend.length - 1].record : record;
+    const items = buildDetailItems(null, catName, latestRec);
+    const rate = trend.length > 0 && trend[trend.length - 1].maxScore > 0 ? computeRate(trend[trend.length - 1].score, trend[trend.length - 1].maxScore) : 0;
+    this.setData({
+      showCategoryPopup: true,
+      categoryPopupTitle: catName,
+      categoryPopupTrend: trend,
+      categoryPopupItems: items,
+      categoryPopupIndex: trend.length > 0 ? trend.length - 1 : -1,
+      categoryPopupRate: rate,
+      categoryPopupRecord: latestRec
+    });
+  },
+
+  hideCategoryPopup() {
+    this.setData({ showCategoryPopup: false, categoryPopupIndex: -1, categoryPopupRecord: null, categoryPopupItems: [] });
+  },
+
+  onCategoryTrendTap(e) {
+    const index = e.currentTarget.dataset.index;
+    const trend = this.data.categoryPopupTrend[index];
+    if (!trend || !trend.record) return;
+    const rate = trend.maxScore > 0 ? computeRate(trend.score, trend.maxScore) : 0;
+    const items = buildDetailItems(null, this.data.categoryPopupTitle, trend.record);
+    this.setData({
+      categoryPopupIndex: index,
+      categoryPopupRate: rate,
+      categoryPopupRecord: trend.record,
+      categoryPopupItems: items
+    });
   },
 
   drawRadarForRecord(record) {
@@ -431,5 +760,9 @@ Page({
       }
       this._drawing = false;
     });
+  },
+
+  logout() {
+    getApp().logout();
   }
 });

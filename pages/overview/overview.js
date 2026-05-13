@@ -1,7 +1,6 @@
 const app = getApp();
-const { isManagerRole, navRoleCaption, normalizeInstructorLevel, getUserInfo } = require('../../utils/roles.js');
-const { MOCK_SCORE_HISTORY, MOCK_USERS } = require('../../utils/mockData.js');
-const { normalizeApiResponse } = require('../../utils/api.js');
+const { isManagerRole, navRoleCaption, normalizeInstructorLevel, getUserInfo, getRoleLabel } = require('../../utils/roles.js');
+const { normalizeApiResponse, normalizeArrayPayload } = require('../../utils/api.js');
 
 function computeLevelLabel(userInfo) {
   if (!userInfo) return '';
@@ -14,34 +13,6 @@ function tabBarInit(page) {
   if (typeof page.getTabBar === 'function' && page.getTabBar()) {
     page.getTabBar().init();
   }
-}
-
-function normalizeScoresListResponse(data) {
-  if (!data) return { items: [] };
-  // 如果 data 是字符串（body 未解析），尝试解析 JSON
-  if (typeof data === 'string') {
-    try { data = JSON.parse(data); } catch (e) { return { items: [] }; }
-  }
-  // 如果 data.body 存在（云函数原始返回格式），解析 body
-  if (data.body) {
-    let body = data.body;
-    if (typeof body === 'string') {
-      try { body = JSON.parse(body); } catch (e) { body = null; }
-    }
-    if (body) {
-      if (Array.isArray(body)) return { items: body };
-      if (Array.isArray(body.items)) return { items: body.items };
-      if (body.data && Array.isArray(body.data.items)) return { items: body.data.items };
-      if (Array.isArray(body.data)) return { items: body.data };
-      if (body.data && Array.isArray(body.data.scores)) return { items: body.data.scores };
-    }
-  }
-  if (Array.isArray(data)) return { items: data };
-  if (Array.isArray(data.items)) return { items: data.items };
-  if (data.data && Array.isArray(data.data.items)) return { items: data.data.items };
-  if (Array.isArray(data.data)) return { items: data.data };
-  if (data.data && Array.isArray(data.data.scores)) return { items: data.data.scores };
-  return { items: [] };
 }
 
 function recentScoreTone(totalScore) {
@@ -62,6 +33,7 @@ Page({
     stats: { total: 0, student: 0, instructor: 0, deputy_director: 0, supervisor: 0, department_head: 0, center_director: 0 },
     scoreStats: { totalScores: 0, scoredStudents: 0 },
     pendingTasks: 0,
+    actionItems: [],
     records: [],
     filteredRecords: [],
     sectors: [],
@@ -90,7 +62,9 @@ Page({
 
     // 展开详情
     expandedId: null,
-    expandedDeductId: ''
+    expandedDeductId: '',
+    managerReminder: '',
+    attentionItems: []
   },
 
   _refreshing: false,
@@ -125,6 +99,8 @@ Page({
     // 只保留模板需要的字段，丢弃原始的 scores/itemDetails 等大数据
     return {
       scoreId: r.scoreId || r.id,
+      studentId: r.studentId || '',
+      instructorId: r.instructorId || '',
       studentName: r.studentName || '',
       instructorName: r.instructorName || '',
       sectorName: r.sectorName || '',
@@ -161,7 +137,7 @@ Page({
     this.setData({
       isStudent: userInfo.role === 'student',
       isManager: true,
-      roleLabel: navRoleCaption(userInfo) || userInfo.role,
+      roleLabel: getRoleLabel(userInfo.role),
       levelLabel: computeLevelLabel(userInfo),
       avatarUrl,
       departmentLabel: userInfo.department || '',
@@ -192,10 +168,24 @@ Page({
     try {
       const res = normalizeApiResponse(await app.request({ url: '/users/reminders' }));
       if (res && res.success && res.data) {
+        var reminders = res.data.reminders || [];
+        var stats = res.data.stats || { icaoExpired: 0, icaoWarning: 0, medicalExpired: 0, medicalWarning: 0 };
+        var managerReminder = '';
+        var expiredCount = stats.icaoExpired + stats.medicalExpired;
+        var warningCount = stats.icaoWarning + stats.medicalWarning;
+        if (expiredCount > 0 && warningCount > 0) {
+          managerReminder = expiredCount + '人证件已过期，' + warningCount + '人即将到期，请及时处理';
+        } else if (expiredCount > 0) {
+          managerReminder = expiredCount + '人证件已过期，请及时处理';
+        } else if (warningCount > 0) {
+          managerReminder = warningCount + '人证件即将到期，请关注';
+        }
         this.setData({
-          reminders: res.data.reminders || [],
-          reminderStats: res.data.stats || { icaoExpired: 0, icaoWarning: 0, medicalExpired: 0, medicalWarning: 0 }
+          reminders: reminders,
+          reminderStats: stats,
+          managerReminder: managerReminder
         });
+        this.computeAttentionItems();
       }
     } catch (e) {
       // 静默失败
@@ -206,7 +196,12 @@ Page({
     this.setData({ showReminders: !this.data.showReminders });
   },
 
+  expandReminderPanel() {
+    this.setData({ showReminders: true });
+  },
+
   async loadOverview() {
+    this._refreshing = true;
     this.setData({ loading: true, loadError: '' });
     try {
       // 先加载放单学员列表，用于标记 score 记录的 released 状态
@@ -227,9 +222,9 @@ Page({
       const params = [];
       params.push('_t=' + Date.now());
       const scoresRes = await app.request({ url: '/scores?page=1&limit=100&includeReleased=true&' + params.join('&') });
-      console.log('[overview] /scores raw response type:', typeof scoresRes, 'keys:', scoresRes ? Object.keys(scoresRes).join(',') : 'null');
-      const { items } = normalizeScoresListResponse(scoresRes);
-      console.log('[overview] normalized items count:', items.length);
+      // 响应数据调试
+      const items = normalizeArrayPayload(scoresRes);
+      // 已标准化数据项数
       if (items.length > 0) {
         items.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
         const scoredStudents = new Set(items.map(s => s.studentId).filter(Boolean)).size;
@@ -248,28 +243,7 @@ Page({
         // 延迟调用，避免 setData 回调在超时时未执行
         setTimeout(() => { this.updateFilteredRecords(); }, 50);
       } else {
-        // 真实 API 返回空数据时，使用 mock 数据 fallback
-        console.log('[overview] API returned 0 items, using mock fallback');
-        const fallbackRecords = [];
-        for (let fk = 0; fk < MOCK_SCORE_HISTORY.length; fk++) {
-          try {
-            fallbackRecords.push(this._enrichRecord(Object.assign({}, MOCK_SCORE_HISTORY[fk], { tone: recentScoreTone(MOCK_SCORE_HISTORY[fk].totalScore) })));
-          } catch (fbErr) {
-            const fkItem = MOCK_SCORE_HISTORY[fk];
-            const _fbRel = !!(fkItem.released || (this._releasedStudentIds && this._releasedStudentIds[fkItem.studentId]));
-            fallbackRecords.push({ scoreId: fkItem.scoreId || fkItem.id, studentName: fkItem.studentName || '', instructorName: fkItem.instructorName || '', sectorName: fkItem.sectorName || '', sectorId: fkItem.sectorId || '', date: fkItem.date || '', totalScore: Number(fkItem.totalScore) || 0, maxTotal: 100, grade: fkItem.grade || '', tone: recentScoreTone(fkItem.totalScore), released: _fbRel, scoresArray: [], deductItems: [] });
-          }
-        }
-        const fbScoredStudents = new Set(fallbackRecords.map(s => s.studentName).filter(Boolean)).size;
-        const fbStudentPickerNames = ['全部学员'].concat(Array.from(new Set(fallbackRecords.map(r => r.studentName).filter(Boolean))));
-        const fbInstructorPickerNames = ['全部教员'].concat(Array.from(new Set(fallbackRecords.map(r => r.instructorName).filter(Boolean))));
-        this.setData({
-          records: fallbackRecords,
-          scoreStats: { totalScores: fallbackRecords.length, scoredStudents: fbScoredStudents },
-          studentPickerNames: fbStudentPickerNames,
-          instructorPickerNames: fbInstructorPickerNames
-        });
-        setTimeout(() => { this.updateFilteredRecords(); }, 50);
+        this.setData({ records: [], scoreStats: { totalScores: 0, scoredStudents: 0 }, studentPickerNames: ['全部学员'], instructorPickerNames: ['全部教员'] });
       }
       try {
         const sectorsRes = await app.request({ url: '/sectors' });
@@ -292,37 +266,15 @@ Page({
             this.setData({ pendingTasks: pendingRes.data });
           }
         } catch (pendingErr) { console.log('[overview] pending-count请求失败', pendingErr); /* ignore */ }
+        this._computeActionItems();
       }
     } catch (e) {
-      console.log('[overview] 请求失败，使用模拟数据', e);
-      // 无论 mockMode 状态如何，请求失败时都使用 mock 数据 fallback
-      const mockRecords = [];
-      for (let mk = 0; mk < MOCK_SCORE_HISTORY.length; mk++) {
-        try {
-          mockRecords.push(this._enrichRecord(Object.assign({}, MOCK_SCORE_HISTORY[mk], { tone: recentScoreTone(MOCK_SCORE_HISTORY[mk].totalScore) })));
-        } catch (enrichErr2) {
-          const mkItem = MOCK_SCORE_HISTORY[mk];
-          const _mkRel = !!(mkItem.released || (this._releasedStudentIds && this._releasedStudentIds[mkItem.studentId]));
-          mockRecords.push({ scoreId: mkItem.scoreId || mkItem.id, studentName: mkItem.studentName || '', instructorName: mkItem.instructorName || '', sectorName: mkItem.sectorName || '', sectorId: mkItem.sectorId || '', date: mkItem.date || '', totalScore: Number(mkItem.totalScore) || 0, maxTotal: 100, grade: mkItem.grade || '', tone: recentScoreTone(mkItem.totalScore), released: _mkRel, scoresArray: [], deductItems: [] });
-        }
-      }
-      const scoredStudents = new Set(mockRecords.map(s => s.studentName).filter(Boolean)).size;
-      const studentPickerNames = ['全部学员'].concat(Array.from(new Set(mockRecords.map(r => r.studentName).filter(Boolean))));
-      const instructorPickerNames = ['全部教员'].concat(Array.from(new Set(mockRecords.map(r => r.instructorName).filter(Boolean))));
-      this.setData({
-        loadError: '',
-        records: mockRecords,
-        scoreStats: { totalScores: mockRecords.length, scoredStudents },
-        studentPickerNames,
-        instructorPickerNames
-      });
-      setTimeout(() => { this.updateFilteredRecords(); }, 50);
-      // 如果当前不在 mock 模式，提示用户后端不可用
-      if (!app.globalData.mockMode) {
-        app.enableMockMode();
-      }
+      console.log('[overview] 请求失败', e);
+      wx.showToast({ title: '加载失败', icon: 'none' });
     } finally {
       this.setData({ loading: false });
+      this.computeAttentionItems();
+      this._refreshing = false;
     }
   },
 
@@ -369,6 +321,12 @@ Page({
     const index = Number(e.detail.value || 0);
     const sector = index > 0 ? this.data.sectors[index - 1] : null;
     this.setData({ sectorFilterIndex: index, sectorFilter: sector ? sector.sectorId : '' }, () => this.updateFilteredRecords());
+  },
+
+  onSectorTabTap(e) {
+    const sectorId = e.currentTarget.dataset.sector;
+    const index = sectorId ? this.data.sectors.findIndex(s => s.sectorId === sectorId) + 1 : 0;
+    this.setData({ sectorFilterIndex: index, sectorFilter: sectorId }, () => this.updateFilteredRecords());
   },
 
   onStartDateChange(e) {
@@ -454,11 +412,94 @@ Page({
     });
   },
 
+  computeAttentionItems() {
+    const items = [];
+    const records = this.data.records || [];
+    const now = Date.now();
+    const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000;
+
+    var studentLastEval = {};
+    for (var i = 0; i < records.length; i++) {
+      var r = records[i];
+      if (r.studentId && r.date) {
+        var d = new Date(r.date).getTime();
+        if (!studentLastEval[r.studentId] || d > studentLastEval[r.studentId]) {
+          studentLastEval[r.studentId] = d;
+        }
+      }
+    }
+    var staleCount = 0;
+    var keys = Object.keys(studentLastEval);
+    for (var j = 0; j < keys.length; j++) {
+      if (now - studentLastEval[keys[j]] > FOURTEEN_DAYS) staleCount++;
+    }
+    if (staleCount > 0) {
+      items.push({
+        id: 'stale',
+        icon: '🔴',
+        text: staleCount + '名学员超过14天未评估',
+        subtext: '点击查看详情',
+        action: 'goToUsers',
+        params: {}
+      });
+    }
+
+    var stats = this.data.reminderStats || {};
+    var expiringCount = (stats.icaoWarning || 0) + (stats.medicalWarning || 0);
+    if (expiringCount > 0) {
+      items.push({
+        id: 'expiring',
+        icon: '🟡',
+        text: expiringCount + '名学员证件即将到期',
+        subtext: '点击查看详情',
+        action: 'goToReminders',
+        params: {}
+      });
+    }
+
+    var studentScores = {};
+    for (var k = 0; k < records.length; k++) {
+      var rec = records[k];
+      if (rec.studentId && !rec.released) {
+        if (!studentScores[rec.studentId]) studentScores[rec.studentId] = [];
+        studentScores[rec.studentId].push(rec.totalScore);
+      }
+    }
+    var releaseReady = 0;
+    var sKeys = Object.keys(studentScores);
+    for (var m = 0; m < sKeys.length; m++) {
+      var scores = studentScores[sKeys[m]];
+      if (scores.length >= 3 && scores.every(function(s) { return s >= 90; })) {
+        releaseReady++;
+      }
+    }
+    if (releaseReady > 0) {
+      items.push({
+        id: 'release',
+        icon: '🟢',
+        text: releaseReady + '名学员达到放单标准',
+        subtext: '点击查看详情',
+        action: 'goToUsers',
+        params: {}
+      });
+    }
+
+    this.setData({ attentionItems: items });
+  },
+
+  onRecordTap(e) {
+    const { studentId, instructorId } = e.currentTarget.dataset;
+    if (studentId) {
+      app.globalData.pendingTabParams = { studentId: studentId };
+      wx.switchTab({ url: '/pages/radar/radar' });
+    }
+  },
+
   goToUsers() {
-    console.log('[overview] goToUsers clicked');
+    // 跳转用户管理
     wx.navigateTo({
       url: '/pages/users/users',
-      success: () => console.log('[overview] navigateTo users success'),
+      success: () => {},
       fail: (err) => {
         console.error('[overview] navigateTo users fail:', err);
         wx.showToast({ title: '跳转失败:' + (err.errMsg || '未知错误'), icon: 'none' });
@@ -466,42 +507,147 @@ Page({
     });
   },
   goToConfig() {
-    console.log('[overview] goToConfig clicked');
+    // 跳转系统配置
     wx.navigateTo({
       url: '/pages/config/config',
-      success: () => console.log('[overview] navigateTo config success'),
+      success: () => {},
       fail: (err) => {
         console.error('[overview] navigateTo config fail:', err);
         wx.showToast({ title: '跳转失败:' + (err.errMsg || '未知错误'), icon: 'none' });
       }
     });
   },
+  onAdminGridTap(e) {
+    const action = e.currentTarget.dataset.action;
+    if (!action) return;
+    const map = {
+      users: 'goToUsers',
+      config: 'goToConfig',
+      scoreConfig: 'goToScoreConfig',
+      analysis: 'goToAnalysis',
+      reminders: 'goToReminders',
+      export: 'goToExport'
+    };
+    const method = map[action];
+    if (method && typeof this[method] === 'function') {
+      this[method]();
+    } else {
+      console.warn('[overview] unknown admin action:', action);
+    }
+  },
+
   goToScoreConfig() {
     wx.navigateTo({
       url: '/pages/score-config/score-config',
-      fail: (err) => wx.showToast({ title: '跳转失败:' + (err.errMsg || '未知错误'), icon: 'none' })
+      fail: (err) => wx.showToast({ title: '跳转失败:' + ((err && err.errMsg) || '未知错误'), icon: 'none' })
     });
   },
   goToReminders() {
     wx.navigateTo({
       url: '/pages/reminders/reminders',
-      fail: (err) => wx.showToast({ title: '跳转失败:' + (err.errMsg || '未知错误'), icon: 'none' })
+      fail: (err) => wx.showToast({ title: '跳转失败:' + ((err && err.errMsg) || '未知错误'), icon: 'none' })
     });
   },
   goToAnalysis() {
     wx.navigateTo({
-      url: '/pages/analysis/analysis',
-      fail: (err) => wx.showToast({ title: '跳转失败:' + (err.errMsg || '未知错误'), icon: 'none' })
+      url: '/pages/instructor-history/instructor-history',
+      fail: (err) => wx.showToast({ title: '跳转失败:' + ((err && err.errMsg) || '未知错误'), icon: 'none' })
     });
   },
   goToProfile() {
     wx.navigateTo({
       url: '/pages/profile/profile',
-      fail: (err) => wx.showToast({ title: '跳转失败:' + (err.errMsg || '未知错误'), icon: 'none' })
+      fail: (err) => wx.showToast({ title: '跳转失败:' + ((err && err.errMsg) || '未知错误'), icon: 'none' })
     });
   },
   goToExport() {
-    wx.showToast({ title: '数据导出功能开发中', icon: 'none' });
+    wx.navigateTo({
+      url: '/pages/export/export',
+      fail: (err) => wx.showToast({ title: '跳转失败:' + ((err && err.errMsg) || '未知错误'), icon: 'none' })
+    });
+  },
+
+  goToStudentProfile(e) {
+    const studentId = e.currentTarget.dataset.id || e.currentTarget.dataset.studentid;
+    if (studentId) {
+      wx.navigateTo({ url: '/pages/student-profile/student-profile?studentId=' + studentId });
+    }
+  },
+
+  goToInstructorHistory(e) {
+    const instructorId = e.currentTarget.dataset.instructorid;
+    if (instructorId) {
+      wx.navigateTo({ url: '/pages/instructor-history/instructor-history?instructorId=' + instructorId });
+    }
+  },
+
+  _computeActionItems() {
+    const actionItems = [];
+    const now = Date.now();
+    const fourteenDays = 14 * 24 * 60 * 60 * 1000;
+    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+    const records = this.data.records || [];
+    const studentLastScore = {};
+    for (let i = 0; i < records.length; i++) {
+      const r = records[i];
+      const sid = r.studentId;
+      if (!sid) continue;
+      const d = new Date(r.date || 0).getTime();
+      if (!studentLastScore[sid] || d > studentLastScore[sid].date) {
+        studentLastScore[sid] = { date: d, name: r.studentName, studentId: sid };
+      }
+    }
+    for (const sid in studentLastScore) {
+      const s = studentLastScore[sid];
+      const daysSince = now - s.date;
+      if (daysSince > fourteenDays) {
+        actionItems.push({
+          id: 'overdue_' + sid,
+          level: 'danger',
+          text: s.name + ' 超过14天未评估',
+          sub: '上次评估: ' + new Date(s.date).toISOString().slice(0, 10),
+          studentId: sid,
+          action: 'goToStudentProfile'
+        });
+      }
+    }
+    try {
+      const reminderData = this.data.reminderStudents || [];
+      for (let j = 0; j < reminderData.length; j++) {
+        const stu = reminderData[j];
+        if (stu.icaoDate) {
+          const d = new Date(stu.icaoDate).getTime();
+          if (d - now < thirtyDays && d > now) {
+            actionItems.push({
+              id: 'icao_' + stu.userId,
+              level: 'warning',
+              text: stu.name + ' ICAO英语即将到期',
+              sub: '到期日: ' + stu.icaoDate,
+              userId: stu.userId,
+              action: 'goToStudentProfile'
+            });
+          }
+        }
+        if (stu.medicalDate) {
+          const d = new Date(stu.medicalDate).getTime();
+          if (d - now < thirtyDays && d > now) {
+            actionItems.push({
+              id: 'medical_' + stu.userId,
+              level: 'warning',
+              text: stu.name + ' 体检合格证即将到期',
+              sub: '到期日: ' + stu.medicalDate,
+              userId: stu.userId,
+              action: 'goToStudentProfile'
+            });
+          }
+        }
+      }
+    } catch (e) { /* ignore */ }
+    actionItems.sort((a, b) => {
+      const order = { danger: 0, warning: 1, success: 2 };
+      return (order[a.level] || 2) - (order[b.level] || 2);
+    });
+    this.setData({ actionItems: actionItems.slice(0, 10) });
   },
   logout() { getApp().logout(); },
 

@@ -1,12 +1,42 @@
 const app = getApp();
-const { isStudentRole, canEnterScores, canUseManagerScoreTools, navRoleCaption, normalizeInstructorLevel, getUserInfo } = require('../../utils/roles.js');
-const { MOCK_STUDENTS, MOCK_SECTORS } = require('../../utils/mockData.js');
+const { isStudentRole, canUseManagerScoreTools, navRoleCaption, normalizeInstructorLevel, getUserInfo, getRoleLabel } = require('../../utils/roles.js');
+const { canScore: canScorePerm } = require('../../utils/permission.js');
 const { normalizeApiResponse } = require('../../utils/api.js');
 
 function tabBarInit(page) {
   if (typeof page.getTabBar === 'function' && page.getTabBar()) {
     page.getTabBar().init();
   }
+}
+
+function computeAge(birthDate) {
+  if (!birthDate) return null;
+  const birth = new Date(birthDate);
+  if (isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const m = now.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+  return age;
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  const date = new Date(d);
+  if (isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+const AVATAR_DEFAULT = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2Ij48Y2lyY2xlIGN4PSI0OCIgY3k9IjQ4IiByPSI0OCIgZmlsbD0iIzFhMmQ0NSIvPjxjaXJjbGUgY3g9IjQ4IiBjeT0iMzYiIHI9IjE0IiBmaWxsPSIjOGE5YmIwIi8+PHBhdGggZD0iTTI0IDc2YzAtMTMuMjU1IDEwLjc0NS0yNCAyNC0yNHMyNCAxMC43NDUgMjQgMjQiIGZpbGw9IiM4YTliYjAiLz48L3N2Zz4=';
+const AVATAR_MALE = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2Ij48Y2lyY2xlIGN4PSI0OCIgY3k9IjQ4IiByPSI0OCIgZmlsbD0iIzFlM2E1ZiIvPjxjaXJjbGUgY3g9IjQ4IiBjeT0iMzYiIHI9IjE0IiBmaWxsPSIjNjBhNWZhIi8+PHBhdGggZD0iTTI0IDc2YzAtMTMuMjU1IDEwLjc0NS0yNCAyNC0yNHMyNCAxMC43NDUgMjQgMjQiIGZpbGw9IiM2MGE1ZmEiLz48L3N2Zz4=';
+const AVATAR_FEMALE = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2Ij48Y2lyY2xlIGN4PSI0OCIgY3k9IjQ4IiByPSI0OCIgZmlsbD0iIzNmMWUzYSIvPjxjaXJjbGUgY3g9IjQ4IiBjeT0iMzYiIHI9IjE0IiBmaWxsPSIjZjQ3MmI2Ii8+PHBhdGggZD0iTTI0IDc2YzAtMTMuMjU1IDEwLjc0NS0yNCAyNC0yNHMyNCAxMC43NDUgMjQgMjQiIGZpbGw9IiNmNDcyYjYiLz48L3N2Zz4=';
+
+function getAvatarUrl(userInfo) {
+  if (!userInfo) return AVATAR_DEFAULT;
+  if (userInfo.photoUrl) return userInfo.photoUrl;
+  if (userInfo.gender === '女') return AVATAR_FEMALE;
+  if (userInfo.gender === '男') return AVATAR_MALE;
+  return AVATAR_DEFAULT;
 }
 
 /** 简易防抖：延迟执行，重复调用时重置计时器 */
@@ -323,7 +353,15 @@ Page({
     submitting: false,
     expandedCategory: 'ALL',
     showAnalysis: false,
+    showHistoryRef: false,
+    historyRefData: null,
     levelLabel: '',
+    avatarUrl: '',
+    age: null,
+    gender: '',
+    groupEntryDate: '',
+    icaoExpiry: '',
+    medicalExpiry: '',
 
     // 历史评分
     scoreHistory: [],
@@ -335,6 +373,9 @@ Page({
     // ===== 数据分析 =====
     showFilterPanel: true,
     showStudentPicker: false,
+    showStudentPanel: false,
+    studentSearchQuery: '',
+    filteredStudents: [],
 
     analysisConfig: {
       selectedStudentIds: [],
@@ -366,22 +407,56 @@ Page({
     insightCards: [],
 
     _drawingChart: false,
-    roleLabel: ''
+    roleLabel: '',
+    showSubmitConfirm: false,
+    confirmDeductions: [],
+    confirmCategorySummary: [],
+
+    // 评分流程
+    showScoreFlow: false,
+    scoreStep: 0,
+    scoringCategoryIndex: 0
   },
 
   _refreshing: false,
   _launchTime: 0,
 
-  onLoad() {
-    let userInfo = getUserInfo();
-    const canScore = userInfo && canEnterScores(userInfo.role);
+  onLoad(options) {
+    let userInfo = getUserInfo() || {};
+    const canScore = canScorePerm(userInfo);
     const isManager = userInfo && canUseManagerScoreTools(userInfo.role);
-    const roleLabel = navRoleCaption(userInfo);
+    const roleLabel = getRoleLabel(userInfo.role);
     const levelLabel = normalizeInstructorLevel(userInfo && (userInfo.instructorLevel || userInfo.level));
-    this.setData({ userInfo, canScore, isManager, roleLabel, levelLabel });
+
+    const lastSector = wx.getStorageSync('lastSelectedSectorId');
+    const lastStudent = wx.getStorageSync('lastSelectedStudentId');
+    const initialSector = lastSector || 'ACC02_32';
+
+    this.setData({
+      userInfo,
+      canScore,
+      isManager,
+      roleLabel,
+      levelLabel,
+      avatarUrl: getAvatarUrl(userInfo),
+      age: computeAge(userInfo && userInfo.birthDate),
+      gender: (userInfo && userInfo.gender) || '',
+      groupEntryDate: formatDate(userInfo && userInfo.groupEntryDate),
+      icaoExpiry: formatDate(userInfo && userInfo.icaoExpiry),
+      medicalExpiry: formatDate(userInfo && userInfo.medicalExpiry),
+      sector: initialSector
+    });
 
     if (canScore || isManager) {
-      this.loadStudents();
+      this.loadStudents().then(() => {
+        if (lastStudent) {
+          const student = this.data.students.find(s => s.userId === lastStudent);
+          if (student) {
+            this.setData({ selectedStudent: student.userId, selectedStudentName: student.name });
+            if (canScore) this.loadHistory();
+          }
+        }
+      });
     }
     if (canScore) {
       this.loadSectorConfigs();
@@ -398,6 +473,36 @@ Page({
       });
     }
     this._launchTime = Date.now();
+    if (options && options.preselectStudent) this._preselectStudent = options.preselectStudent;
+    if (options && options.preselectSector) this._preselectSector = options.preselectSector;
+  },
+
+  onChooseAvatar(e) {
+    const tempUrl = e.detail.avatarUrl;
+    if (!tempUrl) return;
+    wx.showLoading({ title: '上传中' });
+    wx.uploadFile({
+      url: `${app.globalData.apiBaseUrl || ''}/upload/avatar`,
+      filePath: tempUrl,
+      name: 'file',
+      header: {
+        'Authorization': wx.getStorageSync('token') || ''
+      },
+      success: (upRes) => {
+        let data = upRes.data;
+        try { data = JSON.parse(data); } catch (err) {}
+        if (data && data.url) {
+          const u = this.data.userInfo || {};
+          u.photoUrl = data.url;
+          this.setData({ avatarUrl: data.url, userInfo: u });
+          wx.showToast({ title: '上传成功', icon: 'success' });
+        } else {
+          wx.showToast({ title: '上传失败', icon: 'none' });
+        }
+      },
+      fail: () => wx.showToast({ title: '上传失败', icon: 'none' }),
+      complete: () => wx.hideLoading()
+    });
   },
 
   onShow() {
@@ -406,7 +511,29 @@ Page({
       wx.switchTab({ url: '/pages/mygrades/mygrades' });
       return;
     }
+    try { wx.enableAlertBeforeUnload({ message: '评分数据将丢失，确定退出？' }); } catch (e) {}
     tabBarInit(this);
+
+    // 处理从其他页面通过 switchTab 传递的参数
+    const pending = app.globalData.pendingTabParams;
+    if (pending) {
+      app.globalData.pendingTabParams = null;
+      if (pending.preselectStudent && this.data.students && this.data.students.length) {
+        const student = this.data.students.find(s => s.userId === pending.preselectStudent);
+        if (student) {
+          this.setData({ selectedStudent: student.userId, selectedStudentName: student.name });
+          this.loadHistory();
+        }
+      }
+      if (pending.preselectSector && this.data.sectorConfigs) {
+        const sectorExists = this.data.sectorConfigs[pending.preselectSector];
+        if (sectorExists) {
+          this.setData({ sector: pending.preselectSector });
+          wx.setStorageSync('lastSelectedSectorId', pending.preselectSector);
+        }
+      }
+    }
+
     // 防抖 + 启动保护（onLoad 完成后2秒内不重复加载）
     if (this._refreshing) return;
     if (this._launchTime && Date.now() - this._launchTime < 2000) return;
@@ -417,25 +544,24 @@ Page({
     }
   },
 
-  onTestLogout() {
-    getApp().logout();
-  },
-
   async loadStudents() {
     try {
       const res = normalizeApiResponse(await app.request({ url: '/users/students' }));
-      if (res && res.success && res.data && res.data.length > 0) {
-        this.setData({ students: res.data });
-      } else {
-        this.setData({ students: [] });
-      }
+      let list = [];
+      if (Array.isArray(res)) list = res;
+      else if (res && Array.isArray(res.data)) list = res.data;
+      else if (res && Array.isArray(res.items)) list = res.items;
+      this.setData({ students: list });
     } catch (e) {
-      // 仅在模拟模式下回退到 mock 数据
-      if (app.globalData.mockMode) {
-        this.setData({ students: MOCK_STUDENTS });
-      } else {
-        this.setData({ students: [] });
+      this.setData({ students: [] });
+    }
+    if (this._preselectStudent) {
+      const student = this.data.students.find(s => s.userId === this._preselectStudent);
+      if (student) {
+        this.setData({ selectedStudent: student.userId, selectedStudentName: student.name });
+        this.loadHistory();
       }
+      this._preselectStudent = null;
     }
   },
 
@@ -468,34 +594,149 @@ Page({
     } catch (e) {
       console.error('加载扇区配置失败', e);
     }
-    // 降级：优先使用 MOCK_SECTORS（与配置页联动），再 fallback 到硬编码
     if (Object.keys(configs).length === 0) {
-      const mockSectors = MOCK_SECTORS || [];
-      if (mockSectors.length > 0) {
-        mockSectors.forEach(s => { configs[s.sectorId] = this.preprocessConfig(s); });
-      } else {
-        Object.keys(SECTOR_CONFIGS).forEach(k => {
-          configs[k] = this.preprocessConfig(SECTOR_CONFIGS[k]);
-        });
-      }
+      Object.keys(SECTOR_CONFIGS).forEach(k => {
+        configs[k] = this.preprocessConfig(SECTOR_CONFIGS[k]);
+      });
     }
     const keys = Object.keys(configs);
     const names = keys.reduce((o, k) => { o[k] = configs[k].name; return o; }, {});
     const sectorConfig = configs[this.data.sector] || configs[keys[0]];
     this.setData({ sectorConfigs: configs, sectorConfigKeys: keys, sectorConfigNames: names, sectorConfig, sectorConfigLoading: false });
     this.updateTotal();
+    if (this._preselectSector && configs[this._preselectSector]) {
+      const sector = this._preselectSector;
+      const config = configs[sector] || this.preprocessConfig(SECTOR_CONFIGS[sector]);
+      this.setData({ sector, sectorConfig: config, scores: {}, scoreReasons: {}, _reasonLengths: {}, expandedCategory: null, weakCategories: [], strongCategories: [], editingScoreId: '' });
+      this.updateTotal();
+      this.loadHistory();
+      this._preselectSector = null;
+    }
   },
 
   // ============ 教员评分方法 ============
   onStudentChange(e) {
     const student = this.data.students[e.detail.value];
     this.setData({ selectedStudent: student.userId, selectedStudentName: student.name });
+    wx.setStorageSync('lastSelectedStudentId', student.userId);
     this.loadHistory();
   },
   switchSector(e) {
     const sector = e.currentTarget.dataset.sector;
     const config = this.data.sectorConfigs[sector] || this.preprocessConfig(SECTOR_CONFIGS[sector]);
     this.setData({ sector, sectorConfig: config, scores: {}, scoreReasons: {}, _reasonLengths: {}, expandedCategory: null, weakCategories: [], strongCategories: [], editingScoreId: '' });
+    wx.setStorageSync('lastSelectedSectorId', sector);
+    this.updateTotal();
+    this.loadHistory();
+  },
+  openStudentPanel() {
+    this.setData({ showStudentPanel: true, studentSearchQuery: '', filteredStudents: this.data.students });
+  },
+  closeStudentPanel() {
+    this.setData({ showStudentPanel: false, studentSearchQuery: '', filteredStudents: [] });
+  },
+  onStudentSearch(e) {
+    const query = (e.detail.value || '').trim().toLowerCase();
+    const students = this.data.students;
+    const filtered = query ? students.filter(s => (s.name || '').toLowerCase().indexOf(query) > -1) : students;
+    this.setData({ studentSearchQuery: e.detail.value || '', filteredStudents: filtered });
+  },
+  selectStudentFromPanel(e) {
+    const studentId = e.currentTarget.dataset.id;
+    const student = this.data.students.find(s => s.userId === studentId);
+    if (!student) return;
+    this.setData({
+      selectedStudent: student.userId,
+      selectedStudentName: student.name,
+      showStudentPanel: false,
+      studentSearchQuery: '',
+      filteredStudents: []
+    });
+    wx.setStorageSync('lastSelectedStudentId', student.userId);
+    this.loadHistory();
+  },
+
+  // ========== 评分流程 ==========
+  startScoreFlow() {
+    this.setData({
+      showScoreFlow: true,
+      scoreStep: 1,
+      selectedStudent: '',
+      selectedStudentName: '',
+      scores: {},
+      scoreReasons: {},
+      _reasonLengths: {},
+      expandedCategory: null,
+      weakCategories: [],
+      strongCategories: [],
+      editingScoreId: '',
+      scoringCategoryIndex: 0
+    }, () => this.updateTotal());
+  },
+  closeScoreFlow() {
+    this.setData({ showScoreFlow: false, scoreStep: 0, scoringCategoryIndex: 0 });
+  },
+  nextStep() {
+    const step = this.data.scoreStep;
+    if (step === 1 && !this.data.selectedStudent) {
+      wx.showToast({ title: '请先选择学员', icon: 'none' });
+      return;
+    }
+    if (step === 2 && !this.data.sector) {
+      wx.showToast({ title: '请先选择扇区', icon: 'none' });
+      return;
+    }
+    if (step === 3) {
+      const categories = this.data.sectorConfig ? this.data.sectorConfig.categories || [] : [];
+      const idx = this.data.scoringCategoryIndex;
+      if (idx < categories.length - 1) {
+        this.setData({ scoringCategoryIndex: idx + 1 });
+      }
+      return;
+    }
+    if (step < 3) {
+      this.setData({ scoreStep: step + 1, scoringCategoryIndex: 0 });
+    }
+  },
+  prevStep() {
+    const step = this.data.scoreStep;
+    if (step === 3) {
+      const idx = this.data.scoringCategoryIndex;
+      if (idx > 0) {
+        this.setData({ scoringCategoryIndex: idx - 1 });
+        return;
+      }
+    }
+    if (step > 1) {
+      this.setData({ scoreStep: step - 1 });
+    }
+  },
+  selectStudentInFlow(e) {
+    const studentId = e.currentTarget.dataset.id;
+    const student = this.data.students.find(s => s.userId === studentId);
+    if (!student) return;
+    this.setData({
+      selectedStudent: student.userId,
+      selectedStudentName: student.name
+    });
+    wx.setStorageSync('lastSelectedStudentId', student.userId);
+    this.loadHistory();
+  },
+  selectSectorInFlow(e) {
+    const sector = e.currentTarget.dataset.sector;
+    const config = this.data.sectorConfigs[sector] || this.preprocessConfig(SECTOR_CONFIGS[sector]);
+    this.setData({
+      sector,
+      sectorConfig: config,
+      scores: {},
+      scoreReasons: {},
+      _reasonLengths: {},
+      expandedCategory: null,
+      weakCategories: [],
+      strongCategories: [],
+      editingScoreId: ''
+    });
+    wx.setStorageSync('lastSelectedSectorId', sector);
     this.updateTotal();
     this.loadHistory();
   },
@@ -526,6 +767,12 @@ Page({
     _sd2['scores.' + cat + '_' + item] = actualScore;
     this.setData(_sd2, () => this.updateTotal());
   },
+  quickScoreItem(e) {
+    const { cat, item, val } = e.currentTarget.dataset;
+    const _sd = {};
+    _sd['scores.' + cat + '_' + item] = parseInt(val, 10);
+    this.setData(_sd, () => this.updateTotal());
+  },
   onReasonInput(e) {
     const { cat, item } = e.currentTarget.dataset;
     const val = e.detail.value || '';
@@ -546,6 +793,34 @@ Page({
   },
   toggleAnalysis() {
     this.setData({ showAnalysis: !this.data.showAnalysis });
+  },
+  toggleHistoryRef() {
+    this.setData({ showHistoryRef: !this.data.showHistoryRef });
+  },
+  computeHistoryRef(studentId) {
+    const history = this.data.scoreHistory;
+    if (!history || history.length === 0) {
+      this.setData({ historyRefData: null });
+      return;
+    }
+    const recent3 = history.slice(0, 3);
+    const recentScores = recent3.map(h => h.totalScore).reverse().join('→');
+    const avgScore = Math.round(history.reduce((s, h) => s + h.totalScore, 0) / history.length * 10) / 10;
+    let weakCategory = '';
+    const latest = history[0];
+    if (latest && latest.scores && latest.scores.length > 0) {
+      let minRate = 1;
+      latest.scores.forEach(s => {
+        if (s.maxScore > 0) {
+          const rate = s.score / s.maxScore;
+          if (rate < minRate) {
+            minRate = rate;
+            weakCategory = s.categoryName;
+          }
+        }
+      });
+    }
+    this.setData({ historyRefData: { recentScores, avgScore, weakCategory } });
   },
   getCategoryScore(cat) {
     return cat.items.reduce((sum, item) => sum + (this.data.scores[`${cat.id}_${item.id}`] || 0), 0);
@@ -588,7 +863,20 @@ Page({
     });
     const g = getGrade(total);
     const totalProgressPct = config.totalScore ? Math.max(0, Math.min(100, Math.round((total / config.totalScore) * 100))) : 0;
-    this.setData({ totalScore: total, gradeText: g.text, gradeColor: g.color, categoryScores, categoryColors, catRates, catRatePass, catRateWeak, weakCategories, strongCategories, totalProgressPct });
+    let totalItemCount = 0;
+    let scoredItemCount = 0;
+    config.categories.forEach(cat => {
+      cat.items.forEach(item => {
+        totalItemCount++;
+        const key = cat.id + '_' + item.id;
+        if (this.data.scores[key] !== undefined && this.data.scores[key] !== null && this.data.scores[key] !== '') {
+          scoredItemCount++;
+        }
+      });
+    });
+    const maxTotalScore = config.totalScore || 100;
+    const scoredPct = totalItemCount > 0 ? Math.round((scoredItemCount / totalItemCount) * 100) : 0;
+    this.setData({ totalScore: total, gradeText: g.text, gradeColor: g.color, categoryScores, categoryColors, catRates, catRatePass, catRateWeak, weakCategories, strongCategories, totalProgressPct, scoredItemCount, totalItemCount, maxTotalScore, scoredPct });
   },
   async submitScore() {
     if (this.data.submitting) {
@@ -596,13 +884,11 @@ Page({
       return;
     }
     if (!this.data.selectedStudent) {
-      // 保存已填内容，滚动到学员选择区
       wx.pageScrollTo({ selector: '.score-card-gradient', duration: 300 });
       wx.showToast({ title: '请先选择学员', icon: 'none' });
       return;
     }
     const config = this.data.sectorConfig;
-    // 未满分必须填写扣分说明
     for (const cat of config.categories) {
       for (const item of cat.items) {
         if (!item.maxScore || item.maxScore <= 0) continue;
@@ -618,6 +904,29 @@ Page({
         }
       }
     }
+    const deductions = [];
+    const catSummary = [];
+    config.categories.forEach(cat => {
+      const catScore = this.getCategoryScore(cat);
+      catSummary.push({ name: cat.name, score: catScore, maxScore: cat.maxScore, rate: cat.maxScore > 0 ? Math.round(catScore / cat.maxScore * 100) : 0 });
+      (cat.items || []).forEach(item => {
+        const key = cat.id + '_' + item.id;
+        const score = this.data.scores[key];
+        if (score !== undefined && score < item.maxScore) {
+          deductions.push({ name: item.name, deduct: item.maxScore - score, reason: this.data.scoreReasons[key] || '' });
+        }
+      });
+    });
+    this.setData({ showSubmitConfirm: true, confirmDeductions: deductions, confirmCategorySummary: catSummary });
+  },
+
+  cancelSubmit() {
+    this.setData({ showSubmitConfirm: false });
+  },
+
+  async confirmSubmit() {
+    this.setData({ showSubmitConfirm: false });
+    const config = this.data.sectorConfig;
     const totalScore = config.categories.reduce((sum, cat) => sum + this.getCategoryScore(cat), 0);
     const grade = getGrade(totalScore);
     const student = this.data.students.find(s => s.userId === this.data.selectedStudent);
@@ -628,14 +937,14 @@ Page({
       sectorName: config.name,
       instructorId: this.data.userInfo && this.data.userInfo.userId,
       instructorName: this.data.userInfo && this.data.userInfo.name,
-      date: new Date().toISOString().split('T')[0],
+      date: formatDate(new Date()),
       scores: config.categories.map(cat => ({
         categoryId: cat.id,
         categoryName: cat.name,
         score: this.getCategoryScore(cat),
         maxScore: cat.maxScore
       })),
-      itemDetails: config.categories.flatMap(cat => 
+      itemDetails: config.categories.flatMap(cat =>
         (cat.items || []).map(item => {
           const key = `${cat.id}_${item.id}`;
           const itemScore = this.data.scores[key] || 0;
@@ -665,15 +974,26 @@ Page({
             date: payload.date
           }
         });
-        wx.showToast({ title: `修改成功 ${totalScore}分`, icon: 'success' });
         this.setData({ editingScoreId: '' });
       } else {
         await app.request({ url: '/scores', method: 'POST', data: payload });
-        wx.showToast({ title: `评分成功 ${totalScore}分`, icon: 'success' });
       }
-      this.setData({ scores: {}, scoreReasons: {}, _reasonLengths: {}, expandedCategory: 'ALL', weakCategories: [], strongCategories: [] });
-      this.updateTotal();
-      this.loadHistory();
+      const deductionItems = [];
+      const categories = this.data.sectorConfig ? this.data.sectorConfig.categories || [] : [];
+      categories.forEach(cat => {
+        (cat.items || []).forEach(item => {
+          const score = this.data.scores[cat.id + '_' + item.id];
+          if (score !== undefined && score < item.maxScore) {
+            deductionItems.push({ name: item.name, deduct: item.maxScore - score });
+          }
+        });
+      });
+
+      const totalScore = this.data.totalScore || 0;
+      const comparison = this.data.scoreComparison;
+      wx.redirectTo({
+        url: `/pages/score-result/score-result?score=${totalScore}&categories=${encodeURIComponent(JSON.stringify(this.data.categoryScores || []))}&deductions=${encodeURIComponent(JSON.stringify(deductionItems))}&comparison=${comparison ? encodeURIComponent(JSON.stringify(comparison)) : ''}`
+      });
     } catch (e) {
       wx.showToast({ title: this.data.editingScoreId ? '修改失败' : '提交失败', icon: 'none' });
     } finally {
@@ -702,9 +1022,10 @@ Page({
         .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
       this.setData({ scoreHistory: rows });
     } catch (e) {
-      this.setData({ scoreHistory: [], historyError: e.message || '历史评分加载失败' });
+      this.setData({ scoreHistory: [], historyError: '' });
     } finally {
       this.setData({ historyLoading: false });
+      this.computeHistoryRef(this.data.selectedStudent);
     }
   },
 
@@ -1199,7 +1520,7 @@ Page({
       if (!res || !res[0] || !res[0].node) {
         this.setData({ _drawingChart: false });
         if (retryCount < 5) {
-          setTimeout(() => this.drawChart(retryCount + 1), 120);
+          this._chartRetryTimer = setTimeout(() => this.drawChart(retryCount + 1), 120);
         } else {
           console.error('Canvas 节点获取失败，重试次数已耗尽');
         }
@@ -1208,7 +1529,12 @@ Page({
 
       const canvas = res[0].node;
       const ctx = canvas.getContext('2d');
-      const dpr = wx.getSystemInfoSync().pixelRatio;
+      let dpr = 1;
+      if (typeof wx.getWindowInfo === 'function') {
+        dpr = wx.getWindowInfo().pixelRatio;
+      } else {
+        dpr = wx.getSystemInfoSync().pixelRatio;
+      }
       const cssWidth = res[0].width;
       const cssHeight = res[0].height;
       canvas.width = cssWidth * dpr;
@@ -1439,6 +1765,35 @@ Page({
 
   onUnload() {
     this.setData({ _drawingChart: false });
+    if (this._scoreInputTimer) { clearTimeout(this._scoreInputTimer); this._scoreInputTimer = null; }
+    if (this._reasonInputTimer) { clearTimeout(this._reasonInputTimer); this._reasonInputTimer = null; }
+    if (this._chartRetryTimer) { clearTimeout(this._chartRetryTimer); this._chartRetryTimer = null; }
+    try { wx.disableAlertBeforeUnload(); } catch (e) {}
+  },
+
+  _hasUnsavedScores() {
+    const scores = this.data.scores;
+    if (!scores || Object.keys(scores).length === 0) return false;
+    return Object.values(scores).some(v => v !== undefined && v !== null && v !== '');
+  },
+
+  onNavigateBack() {
+    if (this._hasUnsavedScores()) {
+      wx.showModal({
+        title: '确认退出',
+        content: '评分数据将丢失，确定退出？',
+        confirmText: '退出',
+        confirmColor: '#ef4444',
+        cancelText: '继续评分',
+        success: (res) => {
+          if (res.confirm) {
+            wx.navigateBack({ delta: 1 });
+          }
+        }
+      });
+    } else {
+      wx.navigateBack({ delta: 1 });
+    }
   },
 
   onPullDownRefresh() {
@@ -1453,5 +1808,9 @@ Page({
     Promise.all(promises).finally(() => {
       wx.stopPullDownRefresh();
     });
+  },
+
+  logout() {
+    getApp().logout();
   }
 });

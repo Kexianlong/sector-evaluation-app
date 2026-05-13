@@ -1,166 +1,81 @@
-const { mockUsers, mockSectors, mockScoreHistory } = require('./utils/mockData.js');
+const APP_VERSION = '1.0.0';
+const BUILD_TIME = '2026-05-13';
 
-const DEFAULT_CLOUD_URL = 'https://cloud1-d9g2y40ql2eb2cc4a.service.tcloudbase.com/backend/api';
-
-function mockApiResponse(url, data) {
-  const body = data || {};
-  if (url === '/auth/login') {
-    const user = mockUsers.find(function(u) { return u.username === body.username; }) || mockUsers[0];
-    if (user && user.role === 'student' && user.isReleased) {
-      return { success: false, message: '该学员已放单，账号已停用。如有疑问请联系管理员。' };
-    }
-    const fullUser = Object.assign({}, user);
-    return { success: true, data: { token: 'mock_token_' + Date.now(), userInfo: fullUser, user: fullUser }, message: '登录成功（模拟模式）' };
-  }
-  if (url === '/auth/me') {
-    const user = wx.getStorageSync('userInfo') || mockUsers[0];
-    return { success: true, data: user };
-  }
-  if (url === '/sectors') {
-    return { success: true, data: mockSectors, message: '获取扇区配置成功' };
-  }
-  const sectorMatch = url.match(/^\/sectors\/(.+)$/);
-  if (sectorMatch) {
-    const sector = mockSectors.find(s => s.sectorId === sectorMatch[1]);
-    return sector ? { success: true, data: sector, message: '获取扇区详情成功' } : { success: false, message: '扇区不存在' };
-  }
-  if (url === '/scores' || url.split('?')[0] === '/scores') {
-    const queryStr = url.split('?')[1] || '';
-    const includeReleased = queryStr.includes('includeReleased=true');
-    let items = mockScoreHistory.map(function(s) { return Object.assign({}, s); });
-    if (!includeReleased) {
-      const releasedStudentIds = new Set(mockUsers.filter(u => u.role === 'student' && u.isReleased).map(u => u.userId));
-      items = items.filter(s => !releasedStudentIds.has(s.studentId));
-    }
-    return { success: true, data: { items, pagination: { page: 1, limit: 50, total: items.length, totalPages: 1 } }, message: '获取评分记录成功' };
-  }
-  if (url === '/users') {
-    const enrichedUsers = mockUsers.map(function(u) { const o = Object.assign({}, u); o.isReleased = !!u.isReleased; o.releasedAt = u.releasedAt || null; return o; });
-    return { success: true, data: { items: enrichedUsers, stats: { total: mockUsers.length, student: mockUsers.filter(u => u.role === 'student').length, instructor: mockUsers.filter(u => u.role === 'instructor').length, deputy_director: 0, supervisor: 0, department_head: 0, center_director: mockUsers.filter(u => u.role === 'center_director').length }, manageableRoles: ['student', 'instructor', 'deputy_director', 'supervisor', 'department_head', 'center_director'], pagination: { page: 1, limit: 50, total: mockUsers.length, totalPages: 1 } }, message: '获取用户列表成功' };
-  }
-  if (url === '/users/students') {
-    const queryStr = url.split('?')[1] || '';
-    const includeReleased = queryStr.includes('includeReleased=true');
-    let students = mockUsers.filter(u => u.role === 'student');
-    if (!includeReleased) {
-      students = students.filter(u => !u.isReleased);
-    }
-    return { success: true, data: students.map(function(u) { const o = Object.assign({}, u); o.isReleased = !!u.isReleased; o.releasedAt = u.releasedAt || null; return o; }), message: '获取学员列表成功' };
-  }
-  if (url === '/export/backup') {
-    return { success: true, data: { exportTime: new Date().toISOString(), version: '1.0', data: { users: body.users ? mockUsers : undefined, scores: body.scores ? mockScoreHistory : undefined, sectors: body.sectors ? mockSectors : undefined } }, message: '备份数据导出成功' };
-  }
-  const studentHistMatch = url.match(/^\/scores\/student\/([^/]+)\/history$/);
-  if (studentHistMatch) {
-    return { success: true, data: mockScoreHistory.map(function(s) { const o = Object.assign({}, s); o.studentId = studentHistMatch[1]; return o; }), message: '获取学员历史评分成功' };
-  }
-  const instructorHistMatch = url.match(/^\/scores\/instructor\/([^/]+)\/history$/);
-  if (instructorHistMatch) {
-    return { success: true, data: mockScoreHistory.map(function(s) { return Object.assign({}, s); }), message: '获取教员历史评分成功' };
-  }
-  const trendsStudentMatch = url.match(/^\/trends\/student\/([^?/]+)/);
-  if (trendsStudentMatch) {
-    const queryPart = (url.split('?')[1] || '');
-    let sectorId = '';
-    if (queryPart) { const parts = queryPart.split('&'); for (let i = 0; i < parts.length; i++) { if (parts[i].indexOf('sectorId=') === 0) { sectorId = parts[i].split('=')[1]; break; } } }
-    if (!sectorId && data && data.sectorId) { sectorId = data.sectorId; }
-    const filtered = mockScoreHistory.filter(function(s) { return s.studentId === trendsStudentMatch[1] && (!sectorId || s.sectorId === sectorId); });
-    return { success: true, data: { scores: filtered }, message: '获取趋势数据成功' };
-  }
-  if (url === '/trends/overview' || url.split('?')[0] === '/trends/overview') {
-    const studentSet = {}; mockScoreHistory.forEach(function(s) { if (s.studentId) studentSet[s.studentId] = true; });
-    return { success: true, data: { totalScores: mockScoreHistory.length, scoredStudents: Object.keys(studentSet).length }, message: '获取趋势概览成功' };
-  }
-  const studentSectorMatch = url.match(/^\/scores\/student\/([^/]+)\/sector\/([^/]+)/);
-  if (studentSectorMatch) {
-    let match = null; for (let j = mockScoreHistory.length - 1; j >= 0; j--) { if (mockScoreHistory[j].studentId === studentSectorMatch[1] && mockScoreHistory[j].sectorId === studentSectorMatch[2]) { match = mockScoreHistory[j]; break; } }
-    return match ? { success: true, data: match, message: '获取评分成功' } : { success: true, data: { scores: [] }, message: '暂无评分记录' };
-  }
-  return { success: true, data: null, message: '操作成功' };
-}
-
-const _origMockApiResponse = mockApiResponse;
-mockApiResponse = function(url, data) {
-  if (url === '/scores' && data) {
-    return { success: true, data: { scoreId: 'mock_' + Date.now() }, message: '评分提交成功（模拟）' };
-  }
-  const putMatch = url.match(/^\/scores\/([^/]+)$/);
-  if (putMatch) {
-    return { success: true, data: { scoreId: putMatch[1] }, message: '评分修改成功（模拟）' };
-  }
-  const releaseMatch = url.match(/^\/users\/([^/]+)\/release$/);
-  if (releaseMatch) {
-    const uid = releaseMatch[1];
-    const shouldRelease = data && data.isReleased !== false;
-    for (let r = 0; r < mockUsers.length; r++) {
-      if (mockUsers[r].userId === uid) {
-        mockUsers[r].isReleased = shouldRelease;
-        mockUsers[r].releasedAt = shouldRelease ? new Date().toISOString() : null;
-        break;
-      }
-    }
-    return { success: true, data: { userId: uid, isReleased: shouldRelease, releasedAt: shouldRelease ? new Date().toISOString() : null }, message: shouldRelease ? '学员已成功放单' : '已取消学员放单状态' };
-  }
-  return _origMockApiResponse(url, data);
+const API_ENVIRONMENTS = {
+  local: 'http://localhost:5000/api',
+  dev: 'https://cloud1-d9g2y40ql2eb2cc4a.service.tcloudbase.com/backend/api',
+  prod: 'https://cloud1-d9g2y40ql2eb2cc4a.service.tcloudbase.com/backend/api'
 };
+const DEFAULT_API_ENV = 'prod';
 
 App({
   globalData: {
-    apiBaseUrl: DEFAULT_CLOUD_URL,
+    version: APP_VERSION,
+    buildTime: BUILD_TIME,
+    apiBaseUrl: API_ENVIRONMENTS[DEFAULT_API_ENV],
+    apiEnv: DEFAULT_API_ENV,
     token: null,
     userInfo: null,
-    mockMode: false
+    pendingTabParams: null
   },
 
   onLaunch() {
-    const CLOUD_URL = DEFAULT_CLOUD_URL;
-
     const token = wx.getStorageSync('token');
     const userInfo = wx.getStorageSync('userInfo');
 
-    this.globalData.mockMode = false;
-    wx.removeStorageSync('mock_mode');
-
+    // 环境选择优先级：Storage中保存的自定义地址 > Storage中的环境标记 > 默认生产环境
     const savedApiBaseUrl = wx.getStorageSync('apiBaseUrl');
+    const savedApiEnv = wx.getStorageSync('apiEnv');
 
     if (savedApiBaseUrl) {
+      // 检测是否为本地地址（安全机制：防止生产环境误连本地服务）
       const isLocalAddress = /localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+/i.test(savedApiBaseUrl);
-
       if (isLocalAddress) {
-        console.log('[app] 检测到本地地址，已自动切换为云端地址');
+        // 检测到本地地址，自动切换为默认云端地址
         wx.removeStorageSync('apiBaseUrl');
-        this.globalData.apiBaseUrl = CLOUD_URL;
+        const env = (savedApiEnv && API_ENVIRONMENTS[savedApiEnv]) ? savedApiEnv : DEFAULT_API_ENV;
+        this.globalData.apiBaseUrl = API_ENVIRONMENTS[env];
+        this.globalData.apiEnv = env;
       } else {
         this.globalData.apiBaseUrl = savedApiBaseUrl;
+        this.globalData.apiEnv = savedApiEnv || DEFAULT_API_ENV;
       }
+    } else if (savedApiEnv && API_ENVIRONMENTS[savedApiEnv]) {
+      this.globalData.apiBaseUrl = API_ENVIRONMENTS[savedApiEnv];
+      this.globalData.apiEnv = savedApiEnv;
+    } else {
+      this.globalData.apiBaseUrl = API_ENVIRONMENTS[DEFAULT_API_ENV];
+      this.globalData.apiEnv = DEFAULT_API_ENV;
     }
 
     if (token && userInfo) {
       this.globalData.token = token;
       this.globalData.userInfo = userInfo;
     }
-    console.log('小程序启动', this.globalData.apiBaseUrl, 'mockMode=', this.globalData.mockMode);
+    // 小程序启动完成
+  },
+
+  setApiEnv(env) {
+    if (API_ENVIRONMENTS[env]) {
+      this.globalData.apiBaseUrl = API_ENVIRONMENTS[env];
+      this.globalData.apiEnv = env;
+      wx.setStorageSync('apiEnv', env);
+      wx.removeStorageSync('apiBaseUrl');
+      return true;
+    }
+    return false;
+  },
+
+  getApiEnvironments() {
+    return API_ENVIRONMENTS;
   },
 
   setApiBaseUrl(url) {
     const next = (url || '').trim().replace(/\/+$/, '');
     if (!next) return false;
     this.globalData.apiBaseUrl = next;
-    this.globalData.mockMode = false;
     wx.setStorageSync('apiBaseUrl', next);
-    console.log('[app] API 地址已切换为', next);
     return true;
-  },
-
-  enableMockMode() {
-    this.globalData.mockMode = true;
-    console.log('[app] 模拟模式已开启（仅当前会话）');
-  },
-
-  disableMockMode() {
-    this.globalData.mockMode = false;
-    wx.removeStorageSync('mock_mode');
-    console.log('[app] 模拟模式已关闭');
   },
 
   navigateToLoginSafe() {
@@ -182,7 +97,6 @@ App({
     wx.removeStorageSync('userInfo');
     this.globalData.token = null;
     this.globalData.userInfo = null;
-    this.globalData.mockMode = false;
     wx.reLaunch({ url: '/pages/login/login' });
   },
 
@@ -204,12 +118,6 @@ App({
     const token = self.globalData.token;
     const apiBaseUrl = self.globalData.apiBaseUrl;
     return new Promise(function(resolve, reject) {
-      if (self.globalData.mockMode) {
-        const mockRes = mockApiResponse(options.url, options.data);
-        resolve(mockRes);
-        return;
-      }
-
       const customHeader = options.header || {};
       const method = (options.method || 'GET').toUpperCase();
       const data = options.data || {};
@@ -256,7 +164,15 @@ App({
               }, 2000);
             }
             const isLoginRequest = options.url === '/auth/login';
-            resolve({ success: false, message: isLoginRequest ? '账号或密码错误' : '登录已过期，请重新登录' });
+            const serverMsg = (resolved && resolved.message) || '';
+            resolve({
+              success: false,
+              message: isLoginRequest ? (serverMsg || '账号或密码错误') : '登录已过期，请重新登录',
+              code: 'UNAUTHORIZED'
+            });
+          } else if (res.statusCode === 403) {
+            const forbiddenMsg = (resolved && resolved.message) || '无权限访问';
+            resolve({ success: false, message: forbiddenMsg, code: 'FORBIDDEN' });
           } else if (res.statusCode === 409) {
             console.log('[app] 409 冲突 ' + options.url, resolved);
             resolve(resolved || { success: false, message: '数据已存在' });
@@ -273,8 +189,7 @@ App({
             icon: 'none',
             duration: 2000
           });
-          const mockRes = mockApiResponse(options.url, options.data);
-          resolve(mockRes);
+          reject(err);
         }
       });
     });

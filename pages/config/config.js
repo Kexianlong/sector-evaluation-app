@@ -1,6 +1,6 @@
 const app = getApp();
-const { navRoleCaption, getUserInfo } = require('../../utils/roles.js');
-const { MOCK_SECTORS } = require('../../utils/mockData.js');
+const { navRoleCaption, getUserInfo, getRoleLabel } = require('../../utils/roles.js');
+const { canAccessConfig } = require('../../utils/permission.js');
 const { normalizeApiResponse } = require('../../utils/api.js');
 
 function genId(prefix) {
@@ -52,16 +52,13 @@ Page({
     valid: true,
     errorMsg: '',
     deletingId: '',
-    showBackupModal: false,
-    backupOptions: { users: true, scores: true, sectors: true },
     toast: ''
   },
 
   onLoad() {
     let userInfo = getUserInfo();
-    this.setData({ userInfo, roleLabel: navRoleCaption(userInfo) });
-    const role = userInfo && userInfo.role;
-    if (!role || !['deputy_director', 'department_head', 'supervisor', 'center_director'].includes(role)) {
+    this.setData({ userInfo, roleLabel: getRoleLabel(userInfo.role) });
+    if (!canAccessConfig(userInfo)) {
       wx.showToast({ title: '无权限', icon: 'none' });
       setTimeout(() => wx.switchTab({ url: '/pages/radar/radar' }), 1500);
       return;
@@ -79,8 +76,7 @@ Page({
         this.setData({ sectors: res.data.items });
       }
     } catch (e) {
-      console.log('[config] 使用模拟数据');
-      this.setData({ sectors: MOCK_SECTORS });
+      wx.showToast({ title: '加载失败', icon: 'none' });
     } finally {
       this.setData({ loading: false });
     }
@@ -262,28 +258,7 @@ Page({
     this.setData({ saving: true });
     wx.showLoading({ title: '保存中...' });
     try {
-      if (app.globalData.mockMode) {
-        let sectors = this.data.sectors.slice();
-        if (isNew) {
-          sectors.push(sector);
-          MOCK_SECTORS.push(sector);
-        } else {
-          let idx = -1;
-          for (let i = 0; i < sectors.length; i++) {
-            if (sectors[i].sectorId === sector.sectorId) { idx = i; break; }
-          }
-          if (idx >= 0) sectors[idx] = sector;
-          let mockIdx = -1;
-          for (let j = 0; j < MOCK_SECTORS.length; j++) {
-            if (MOCK_SECTORS[j].sectorId === sector.sectorId) { mockIdx = j; break; }
-          }
-          if (mockIdx >= 0) MOCK_SECTORS[mockIdx] = sector;
-        }
-        wx.showToast({ title: '保存成功', icon: 'success' });
-        this.setData({ sectors: sectors, editing: false, editingSector: null });
-        return;
-      }
-
+      
       if (isNew) {
         await app.request({
           url: '/sectors',
@@ -462,15 +437,7 @@ Page({
         if (res.confirm) {
           this.setData({ deletingId: sectorId });
           try {
-            if (app.globalData.mockMode) {
-              let sectors = this.data.sectors.filter(function(s) { return s.sectorId !== sectorId; });
-              for (let k = MOCK_SECTORS.length - 1; k >= 0; k--) {
-                if (MOCK_SECTORS[k].sectorId === sectorId) { MOCK_SECTORS.splice(k, 1); break; }
-              }
-              wx.showToast({ title: '删除成功', icon: 'success' });
-              this.setData({ sectors: sectors, deletingId: '' });
-              return;
-            }
+            
             await app.request({ url: `/sectors/${sectorId}`, method: 'DELETE' });
             wx.showToast({ title: '删除成功', icon: 'success' });
             this.loadSectors();
@@ -484,76 +451,10 @@ Page({
     });
   },
 
-  toggleBackupModal() {
-    this.setData({ showBackupModal: !this.data.showBackupModal });
-  },
-
-  toggleBackupOption(e) {
-    const key = e.currentTarget.dataset.key;
-    this.setData({ ['backupOptions.' + key]: !this.data.backupOptions[key] });
-  },
-
-  preventClose() {
-  },
-
   onPullDownRefresh() {
     this.loadSectors().finally(() => {
       wx.stopPullDownRefresh();
     });
   },
 
-  async downloadBackup() {
-    const { backupOptions } = this.data;
-    if (!backupOptions.users && !backupOptions.scores && !backupOptions.sectors) {
-      wx.showToast({ title: '请至少选择一项', icon: 'none' });
-      return;
-    }
-    wx.showLoading({ title: '生成备份中...' });
-    try {
-      const { token, apiBaseUrl } = app.globalData;
-      const res = await new Promise((resolve, reject) => {
-        wx.request({
-          url: `${apiBaseUrl}/export/backup.xlsx`,
-          method: 'POST',
-          header: Object.assign(
-            { 'Content-Type': 'application/json' },
-            token ? { 'Authorization': 'Bearer ' + token } : {}
-          ),
-          data: backupOptions,
-          responseType: 'arraybuffer',
-          success: resolve,
-          fail: reject
-        });
-      });
-      if (res.statusCode >= 200 && res.statusCode < 300) {
-        const fs = wx.getFileSystemManager();
-        const filePath = `${wx.env.USER_DATA_PATH}/扇区评估系统备份_${new Date().toISOString().split('T')[0]}.xlsx`;
-        fs.writeFileSync(filePath, res.data, 'binary');
-        wx.openDocument({
-          filePath,
-          fileType: 'xlsx',
-          showMenu: true,
-          success: () => {
-            this.setData({ showBackupModal: false });
-            wx.showToast({ title: '备份下载成功', icon: 'success' });
-          },
-          fail: () => {
-            wx.showToast({ title: '文件打开失败，请重试', icon: 'none' });
-          }
-        });
-      } else {
-        let msg = '备份失败';
-        try {
-          const text = new TextDecoder().decode(new Uint8Array(res.data));
-          const json = JSON.parse(text);
-          msg = json.message || msg;
-        } catch {}
-        wx.showToast({ title: msg, icon: 'none' });
-      }
-    } catch (e) {
-      wx.showToast({ title: e.message || '备份失败', icon: 'none' });
-    } finally {
-      wx.hideLoading();
-    }
-  }
 });

@@ -45,19 +45,6 @@
     <text>Air Traffic Control Training System v1.0</text>
   </view>
 
-  <!-- 完善资料提醒弹窗 -->
-  <view wx:if="{{showProfileModal}}" class="modal-mask">
-    <view class="modal-content">
-      <view style="font-size: 32px; text-align: center; margin-bottom: 12px;">📝</view>
-      <view class="modal-title">完善个人资料</view>
-      <view class="modal-desc">首次登录请补全性别、出生日期等必要信息，以便准确计算体检有效期和年龄提醒。</view>
-      <view class="modal-actions">
-        <view class="login-btn login-btn-primary modal-btn" bindtap="goToProfileFromModal">去完善</view>
-        <view class="login-btn login-btn-secondary modal-btn" bindtap="skipProfileModal">24小时后再提醒</view>
-      </view>
-    </view>
-  </view>
-
   <!-- 修改密码提醒弹窗 -->
   <view wx:if="{{showPasswordModal}}" class="modal-mask">
     <view class="modal-content">
@@ -94,6 +81,127 @@
           <view class="login-btn login-btn-secondary modal-btn" bindtap="handleCancelPasswordChange">取消</view>
         </view>
       </block>
+    </view>
+  </view>
+
+  <!-- 首次登录信息补全弹窗 -->
+  <view wx:if="{{showProfileModal}}" class="modal-mask">
+    <view class="modal-content" style="max-height:80vh;overflow-y:auto;">
+      <view style="font-size: 32px; text-align: center; margin-bottom: 12px;">📋</view>
+      <view class="modal-title">完善个人信息</view>
+      <view class="modal-desc">请补充以下信息，以便系统为您提供准确服务</view>
+
+      <!-- 头像 -->
+      <view class="login-form-group">
+        <view class="login-form-label">头像</view>
+        <view style="display:flex;align-items:center;gap:12px;" bindtap="chooseProfileAvatar">
+          <image style="width:56px;height:56px;border-radius:50%;border:2px solid var(--border-color,#1e3a5f);background:var(--bg-tertiary,#1a2d45);" src="{{profilePhotoUrl || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2Ij48Y2lyY2xlIGN4PSI0OCIgY3k9IjQ4IiByPSI0OCIgZmlsbD0iIzFhMmQ0NSIvPjxjaXJjbGUgY3g9IjQ4IiBjeT0iMzYiIHI9IjE0IiBmaWxsPSIjOGE5YmIwIi8+PHBhdGggZD0iTTI0IDc2YzAtMTMuMjU1IDEwLjc0NS0yNCAyNC0yNHMyNCAxMC43NDUgMjQgMjQiIGZpbGw9IiM4YTliYjAiLz48L3N2Zz4='}}" mode="aspectFill" />
+          <text style="font-size:12px;color:var(--text-secondary);">点击上传头像</text>
+        </view>
+      </view>
+
+      <!-- 手机号 -->
+      <view class="login-form-group">
+        <view class="login-form-label">手机号码 <text style="color:var(--alert-red);">*</text></view>
+        <view style="display:flex;gap:8px;">
+          <input class="login-input" style="flex:1;" value="{{profilePhone}}" bindinput="onProfilePhoneInput" placeholder="请输入手机号" type="number" maxlength="11" />
+          <button class="login-btn login-btn-secondary" style="width:auto;min-width:100px;font-size:12px;margin:0;padding:0 12px;" open-type="getPhoneNumber" bindgetphonenumber="onGetPhoneNumber">微信授权</button>
+        </view>
+      </view>
+
+      <view class="login-form-group">
+        <view class="login-form-label">性别 <text style="color:var(--alert-red);">*</text></view>
+        <picker bindchange="onProfileGenderChange" value="{{profileGender === '女' ? 1 : 0}}" range="{{['男', '女']}}">
+          <view class="login-input" style="display:flex;align-items:center;justify-content:space-between;">
+            <text style="color:{{profileGender ? '#e2e8f0' : '#475569'}};">{{profileGender || '请选择性别'}}</text>
+            <text style="color:#475569;">▼</text>
+          </view>
+        </picker>
+      </view>
+
+      <view class="login-form-group">
+        <view class="login-form-label">出生日期 <text style="color:var(--alert-red);">*</text></view>
+        <picker mode="date" value="{{profileBirthDate}}" bindchange="onProfileBirthDateChange">
+          <view class="login-input" style="display:flex;align-items:center;justify-content:space-between;">
+            <text style="color:{{profileBirthDate ? '#e2e8f0' : '#475569'}};">{{profileBirthDate || '请选择出生日期'}}</text>
+            <text style="color:#475569;">▼</text>
+          </view>
+        </picker>
+      </view>
+
+      <view wx:if="{{profileIsStudent}}" class="login-form-group">
+        <view class="login-form-label">进组时间 <text style="color:var(--alert-red);">*</text></view>
+        <picker mode="date" value="{{profileGroupEntryDate}}" bindchange="onProfileGroupEntryDateChange">
+          <view class="login-input" style="display:flex;align-items:center;justify-content:space-between;">
+            <text style="color:{{profileGroupEntryDate ? '#e2e8f0' : '#475569'}};">{{profileGroupEntryDate || '请选择进组时间'}}</text>
+            <text style="color:#475569;">▼</text>
+          </view>
+        </picker>
+      </view>
+
+      <!-- ICAO日期 -->
+      <view class="login-form-group">
+        <view class="login-form-label">ICAO获取时间 <text style="color:var(--text-muted);font-size:11px;margin-left:4px;">（选填，3年有效期）</text></view>
+        <picker mode="date" value="{{profileIcaoDate}}" bindchange="onProfileIcaoDateChange">
+          <view class="login-input" style="display:flex;align-items:center;justify-content:space-between;">
+            <text style="color:{{profileIcaoDate ? '#e2e8f0' : '#475569'}};">{{profileIcaoDate || '请选择ICAO获取时间'}}</text>
+            <text style="color:#475569;">▼</text>
+          </view>
+        </picker>
+      </view>
+
+      <!-- 体检日期 -->
+      <view class="login-form-group">
+        <view class="login-form-label">体检合格证获取时间 <text style="color:var(--text-muted);font-size:11px;margin-left:4px;">（选填，2年有效期）</text></view>
+        <picker mode="date" value="{{profileMedicalDate}}" bindchange="onProfileMedicalDateChange">
+          <view class="login-input" style="display:flex;align-items:center;justify-content:space-between;">
+            <text style="color:{{profileMedicalDate ? '#e2e8f0' : '#475569'}};">{{profileMedicalDate || '请选择体检日期'}}</text>
+            <text style="color:#475569;">▼</text>
+          </view>
+        </picker>
+      </view>
+
+      <!-- 责任关系 -->
+      <view wx:if="{{profileIsInstructor && instructorStudentList.length > 0}}" class="login-form-group">
+        <view class="login-form-label">责任学员</view>
+        <picker bindchange="onProfileResponsibleStudentsChange" value="{{profileResponsibleStudentIndex}}" range="{{instructorStudentList}}">
+          <view class="login-input" style="display:flex;align-items:center;justify-content:space-between;">
+            <text style="color:{{profileResponsibleStudentsLabel ? '#e2e8f0' : '#475569'}};">{{profileResponsibleStudentsLabel || '请选择责任学员'}}</text>
+            <text style="color:#475569;">▼</text>
+          </view>
+        </picker>
+        <view wx:if="{{profileResponsibleStudents.length > 0}}" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+          <view wx:for="{{profileResponsibleStudentsInfo}}" wx:key="userId" style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--accent-blue);background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);padding:2px 8px;border-radius:4px;">
+            <text>{{item.name}}</text>
+            <text style="color:var(--text-muted);" bindtap="removeResponsibleStudent" data-id="{{item.userId}}">✕</text>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{profileIsStudent && studentInstructorList.length > 0}}" class="login-form-group">
+        <view class="login-form-label">责任教员 <text style="color:var(--alert-red);">*</text></view>
+        <picker bindchange="onProfileResponsibleInstructorChange" value="{{profileResponsibleInstructorIndex}}" range="{{studentInstructorList}}">
+          <view class="login-input" style="display:flex;align-items:center;justify-content:space-between;">
+            <text style="color:{{profileResponsibleInstructorLabel ? '#e2e8f0' : '#475569'}};">{{profileResponsibleInstructorLabel || '请选择责任教员'}}</text>
+            <text style="color:#475569;">▼</text>
+          </view>
+        </picker>
+      </view>
+
+      <view wx:if="{{profileError}}" class="login-error-msg">{{profileError}}</view>
+
+      <!-- 默认密码安全提醒 -->
+      <view wx:if="{{usingDefaultPassword}}" class="login-form-group" style="background:rgba(255,170,0,0.06);border:1px solid rgba(255,170,0,0.2);border-radius:6px;padding:10px 12px;margin-top:8px;">
+        <view style="font-size:12px;color:#fbbf24;line-height:1.6;">
+          <text style="font-weight:600;">⚠ 安全提醒：</text>您当前使用的是系统默认密码，建议立即修改以保障账号安全。
+        </view>
+        <view class="login-btn login-btn-secondary modal-btn" style="margin-top:8px;height:32px;min-height:32px;font-size:12px;border-radius:4px;" bindtap="switchToPasswordModal">去修改密码</view>
+      </view>
+
+      <view class="modal-actions">
+        <view class="login-btn login-btn-primary modal-btn" bindtap="handleProfileSave">保存并继续</view>
+        <view class="login-btn login-btn-secondary modal-btn" bindtap="handleProfileSkip">稍后再说</view>
+      </view>
     </view>
   </view>
 </view>
