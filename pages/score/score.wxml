@@ -5,7 +5,7 @@
       <button class="mygrades-profile-avatar-btn" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
         <image class="mygrades-profile-avatar" src="{{avatarUrl}}" mode="aspectFill" />
       </button>
-      <view class="mygrades-profile-body">
+      <view class="mygrades-profile-body" bindtap="goToProfile">
         <view class="mygrades-profile-top">
           <text class="mygrades-profile-name">{{userInfo.name || '未登录'}}</text>
           <text wx:if="{{roleLabel}}" class="identity-badge identity-badge-role">{{roleLabel}}</text>
@@ -489,21 +489,21 @@
               <view wx:for="{{sectorConfig.categories[scoringCategoryIndex].items}}" wx:key="id" wx:for-item="item" class="score-item-box">
                 <view class="score-item-header">
                   <view class="score-item-title-wrap">
-                    <view class="body-text text-13 lh-14">{{item.name}}</view>
-                    <view wx:if="{{item.description}}" class="caption-text mt-2 lh-13">{{item.description}}</view>
-                  </view>
-                  <view class="flex-wrap-gap6 mb-6" wx:if="{{item.maxScore <= 20}}">
-                    <view class="btn btn-secondary btn-text-sm" data-cat="{{sectorConfig.categories[scoringCategoryIndex].id}}" data-item="{{item.id}}" data-val="{{item.maxScore}}" bindtap="quickScoreItem">满分{{item.maxScore}}分</view>
-                    <view wx:if="{{item.maxScore >= 3}}" class="btn btn-secondary btn-text-sm" data-cat="{{sectorConfig.categories[scoringCategoryIndex].id}}" data-item="{{item.id}}" data-val="{{item.maxScore - 1}}" bindtap="quickScoreItem">扣1分→{{item.maxScore - 1}}分</view>
-                    <view wx:if="{{item.maxScore >= 5}}" class="btn btn-secondary btn-text-sm" data-cat="{{sectorConfig.categories[scoringCategoryIndex].id}}" data-item="{{item.id}}" data-val="{{item.maxScore - 2}}" bindtap="quickScoreItem">扣2分→{{item.maxScore - 2}}分</view>
+                    <view class="body-text text-14 lh-145">{{item.name}}</view>
+                    <view wx:if="{{item.description}}" class="caption-text mt-3 lh-13 text-secondary">{{item.description}}</view>
                   </view>
                   <view class="score-item-input-wrap">
-                    <text class="caption-text font-mono">/{{item.maxScore}}</text>
                     <input class="input score-input-narrow" type="number" step="1"
                            value="{{scores[sectorConfig.categories[scoringCategoryIndex].id+'_'+item.id] || ''}}" placeholder="0" placeholder-class="placeholder"
                            data-cat="{{sectorConfig.categories[scoringCategoryIndex].id}}" data-item="{{item.id}}" data-max="{{item.maxScore}}"
                            bindinput="onScoreInput" />
+                    <text class="caption-text font-mono-alt">/{{item.maxScore}}</text>
                   </view>
+                </view>
+                <view class="flex-wrap-gap8 mt-6" wx:if="{{item.maxScore <= 20}}">
+                  <view class="btn btn-secondary btn-text-sm btn-sm" data-cat="{{sectorConfig.categories[scoringCategoryIndex].id}}" data-item="{{item.id}}" data-val="{{item.maxScore}}" bindtap="quickScoreItem">满分{{item.maxScore}}分</view>
+                  <view wx:if="{{item.maxScore >= 3}}" class="btn btn-secondary btn-text-sm btn-sm" data-cat="{{sectorConfig.categories[scoringCategoryIndex].id}}" data-item="{{item.id}}" data-val="{{item.maxScore - 1}}" bindtap="quickScoreItem">扣1分→{{item.maxScore - 1}}分</view>
+                  <view wx:if="{{item.maxScore >= 5}}" class="btn btn-secondary btn-text-sm btn-sm" data-cat="{{sectorConfig.categories[scoringCategoryIndex].id}}" data-item="{{item.id}}" data-val="{{item.maxScore - 2}}" bindtap="quickScoreItem">扣2分→{{item.maxScore - 2}}分</view>
                 </view>
                 
                 <view class="progress-bar">

@@ -770,14 +770,21 @@
 }
 
 .score-input-narrow {
-  width: 60px;
+  width: 70px;
   text-align: center;
-  padding: 6px 0;
-  font-size: 15px;
-  font-weight: 800;
-  background: var(--bg-secondary, #132238);
-  border-color: var(--border-color, #1e3a5f);
+  padding: 10px 8px;
+  font-size: 17px;
+  font-weight: 700;
+  background: var(--bg-surface-2, #162033);
+  border: 2px solid var(--border-subtle, #1a2740);
   color: var(--text-primary, #e8ecf1);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.score-input-narrow:focus {
+  border-color: var(--accent-blue, #3b82f6);
+  background: var(--bg-surface-1, #0f1724);
 }
 
 .section-subtitle {
@@ -938,10 +945,10 @@
 
 /* 评分项 */
 .score-item-box {
-  margin-bottom: 10px;
-  padding: 10px;
+  margin-bottom: 12px;
+  padding: 14px;
   background: var(--bg-primary, #0a1628);
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid var(--bg-tertiary, #1a2d45);
 }
 
@@ -949,42 +956,42 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .score-item-title-wrap {
   flex: 1;
-  padding-right: 8px;
+  padding-right: 12px;
   min-width: 0;
 }
 
 .score-item-input-wrap {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
 .score-item-divider {
-  margin-top: 12px;
-  padding-top: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
   border-top: 1px solid var(--bg-tertiary, #1a2d45);
 }
 
 .score-category-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .score-category-meta {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted);
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .score-category-score {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
 }
 
@@ -1192,11 +1199,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--bg-primary, #0a1628);
+  background: var(--bg-page, #070d17);
   z-index: 2000;
   display: flex;
   flex-direction: column;
-  padding-bottom: calc(52px + env(safe-area-inset-bottom));
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
@@ -1204,6 +1211,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
 }
 
 /* 顶部标题栏 */
@@ -1211,22 +1219,26 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 16px 20px;
   background: var(--bg-secondary, #132238);
   border-bottom: 1px solid var(--border-color, #1e3a5f);
   flex-shrink: 0;
+  min-height: 56px;
 }
 
 .score-flow-topbar-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary, #e8ecf1);
+  flex: 1;
+  text-align: center;
 }
 
 .score-flow-topbar-close {
-  font-size: 18px;
+  font-size: 20px;
   color: var(--text-muted, #4a5d75);
-  padding: 4px 8px;
+  padding: 8px 12px;
+  flex-shrink: 0;
 }
 
 /* 步骤指示器 */
@@ -1234,8 +1246,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 14px 16px;
+  gap: 10px;
+  padding: 16px 20px;
   background: var(--bg-secondary, #132238);
   border-bottom: 1px solid var(--border-color, #1e3a5f);
   flex-shrink: 0;
@@ -1244,8 +1256,8 @@
 .score-flow-step {
   display: flex;
   align-items: center;
-  gap: 6px;
-  opacity: 0.45;
+  gap: 8px;
+  opacity: 0.4;
 }
 
 .score-flow-step.active {
@@ -1253,13 +1265,13 @@
 }
 
 .score-flow-step-num {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--bg-tertiary, #1a2d45);
-  border: 1px solid var(--border-color, #1e3a5f);
+  border: 2px solid var(--border-color, #1e3a5f);
   color: var(--text-secondary, #8a9bb0);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -1273,7 +1285,7 @@
 }
 
 .score-flow-step-label {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary, #8a9bb0);
 }
 
@@ -1283,7 +1295,7 @@
 }
 
 .score-flow-step-line {
-  width: 20px;
+  width: 30px;
   height: 2px;
   background: var(--bg-tertiary, #1a2d45);
   border-radius: 1px;
@@ -1297,8 +1309,9 @@
 .score-flow-body {
   flex: 1;
   height: 0; /* 关键：scroll-view 在 flex 中需显式高度才能正确滚动 */
-  padding: 12px 16px;
+  padding: 16px 20px;
   -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
 }
 
 .score-flow-body-scoring {
@@ -1306,9 +1319,9 @@
 }
 
 .score-flow-section-title {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-secondary, #8a9bb0);
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 /* 学员/扇区选项 */
@@ -1317,27 +1330,35 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
-  background: var(--bg-secondary, #132238);
-  border: 1px solid var(--border-color, #1e3a5f);
-  border-radius: 8px;
-  margin-bottom: 8px;
+  padding: 16px 18px;
+  background: var(--bg-surface-1, #0f1724);
+  border: 1px solid var(--border-subtle, #1a2740);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
 }
 
 .score-flow-student-item.selected,
 .score-flow-sector-item.selected {
   border-color: var(--accent-blue, #2563eb);
-  background: rgba(37, 99, 235, 0.08);
+  background: rgba(37, 99, 235, 0.12);
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.15);
+}
+
+.score-flow-student-item:active,
+.score-flow-sector-item:active {
+  transform: scale(0.98);
 }
 
 .score-flow-student-name,
 .score-flow-sector-name {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-primary, #e8ecf1);
+  font-weight: 500;
 }
 
 .score-flow-student-check {
-  font-size: 14px;
+  font-size: 18px;
   color: var(--accent-blue, #2563eb);
   font-weight: 700;
 }
@@ -1347,7 +1368,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
+  padding: 14px 20px;
   background: var(--bg-secondary, #132238);
   border-bottom: 1px solid var(--border-color, #1e3a5f);
   flex-shrink: 0;
@@ -1356,22 +1377,22 @@
 .score-flow-totalbar-left {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: 8px;
 }
 
 .score-flow-totalbar-label {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary, #8a9bb0);
 }
 
 .score-flow-totalbar-value {
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 800;
   font-family: 'SF Mono', Monaco, monospace;
 }
 
 .score-flow-totalbar-unit {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-muted, #4a5d75);
 }
 
@@ -1419,8 +1440,8 @@
 /* 底部按钮 */
 .score-flow-footer {
   display: flex;
-  gap: 10px;
-  padding: 10px 16px 24px;
+  gap: 12px;
+  padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
   background: var(--bg-secondary, #132238);
   border-top: 1px solid var(--border-color, #1e3a5f);
   flex-shrink: 0;
@@ -1428,15 +1449,17 @@
 
 .score-flow-btn {
   flex: 1;
-  height: 44px;
+  height: 48px;
   font-size: 15px;
+  font-weight: 500;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 10px;
 }
 
 .score-flow-btn.disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   pointer-events: none;
 }
 

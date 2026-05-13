@@ -878,6 +878,10 @@ Page({
     if (this._chartGeometry) { this._chartGeometry.selectedIndex = index; }
   },
 
+  goToProfile() {
+    wx.navigateTo({ url: '/pages/profile/profile' });
+  },
+
   clearIndicatorSelection() {
     this.setData({ selectedIndicator: null });
     if (this._chartGeometry) { this._chartGeometry.selectedIndex = null; }

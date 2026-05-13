@@ -861,6 +861,10 @@ Page({
     this.setData({ personalReminder: '' });
   },
 
+  goToProfile() {
+    wx.navigateTo({ url: '/pages/profile/profile' });
+  },
+
   logout() {
     getApp().logout();
   }

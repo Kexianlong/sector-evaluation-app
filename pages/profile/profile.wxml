@@ -57,10 +57,7 @@
       <text class="profile-label">手机号码</text>
       <text class="profile-value">{{userInfo.phone || '—'}}</text>
     </view>
-    <view class="profile-field">
-      <text class="profile-label">职务 / 等级</text>
-      <text class="profile-value">{{levelLabel || '—'}}</text>
-    </view>
+
     <view wx:if="{{userInfo.role === 'student'}}" class="profile-field">
       <text class="profile-label">被评价次数</text>
       <text class="profile-value">{{evalCount}} 次</text>

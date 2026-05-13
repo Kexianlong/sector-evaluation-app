@@ -387,14 +387,12 @@ Page({
   },
 
   goToProfile(e) {
-    const userId = e.currentTarget.dataset.userid;
-    if (!userId) return;
-    wx.navigateTo({
-      url: '/pages/profile/profile?userId=' + userId,
-      fail: function(err) {
-        wx.showToast({ title: '跳转失败:' + ((err && err.errMsg) || '未知错误'), icon: 'none' });
-      }
-    });
+    const userId = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.userid;
+    if (userId) {
+      wx.navigateTo({ url: '/pages/student-profile/student-profile?studentId=' + userId });
+    } else {
+      wx.navigateTo({ url: '/pages/profile/profile' });
+    }
   },
 
   retryLoad() {

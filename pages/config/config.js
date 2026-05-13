@@ -451,6 +451,10 @@ Page({
     });
   },
 
+  goToProfile() {
+    wx.navigateTo({ url: '/pages/profile/profile' });
+  },
+
   onPullDownRefresh() {
     this.loadSectors().finally(() => {
       wx.stopPullDownRefresh();

@@ -13,7 +13,7 @@
 
     <!-- 用户信息栏 -->
     <view class="trend-toolbar" style="margin-bottom:12px;">
-      <view class="trend-user-meta">
+      <view class="trend-user-meta" bindtap="goToProfile">
         <text class="trend-user-name" style="font-size:14px;">{{userInfo.name || '管理员'}}</text>
         <text wx:if="{{roleLabel}}" class="identity-badge identity-badge-role">{{roleLabel}}</text>
       </view>

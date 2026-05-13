@@ -1,7 +1,7 @@
 <view class="container">
   <!-- 用户信息栏 -->
   <view class="trend-toolbar manager-overview-toolbar" style="margin-bottom:12px;">
-    <view class="trend-user-meta">
+    <view class="trend-user-meta" bindtap="goToProfile">
       <text class="trend-user-name">{{userInfo.name || '未登录'}}</text>
       <text wx:if="{{roleLabel}}" class="identity-badge identity-badge-role">{{roleLabel}}</text>
       <text wx:if="{{levelLabel}}" class="identity-badge identity-badge-level">{{levelLabel}}</text>

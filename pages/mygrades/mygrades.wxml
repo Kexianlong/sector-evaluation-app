@@ -5,7 +5,7 @@
       <button class="mygrades-profile-avatar-btn" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
         <image class="mygrades-profile-avatar" src="{{avatarUrl}}" mode="aspectFill" />
       </button>
-      <view class="mygrades-profile-body">
+      <view class="mygrades-profile-body" bindtap="goToProfile">
         <view class="mygrades-profile-top">
           <text class="mygrades-profile-name">{{userInfo.name || '未登录'}}</text>
           <text wx:if="{{roleLabel}}" class="identity-badge identity-badge-role">{{roleLabel}}</text>
@@ -26,7 +26,7 @@
 
   <!-- 教员/管理视角：简洁用户信息 -->
   <view class="trend-toolbar" style="margin-bottom:12px;" wx:if="{{canViewAll}}">
-    <view class="trend-user-meta">
+    <view class="trend-user-meta" bindtap="goToProfile">
       <text class="trend-user-name">{{userInfo.name || '未登录'}}</text>
       <text wx:if="{{roleLabel}}" class="identity-badge identity-badge-role">{{roleLabel}}</text>
       <text wx:if="{{levelLabel}}" class="identity-badge identity-badge-level">{{levelLabel}}</text>
