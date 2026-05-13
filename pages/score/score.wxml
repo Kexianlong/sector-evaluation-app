@@ -1,25 +1,24 @@
 <view class="container">
-  <!-- 教员个人信息卡片 -->
-  <view class="card mygrades-profile-card">
-    <view class="mygrades-profile">
-      <button class="mygrades-profile-avatar-btn" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
-        <image class="mygrades-profile-avatar" src="{{avatarUrl}}" mode="aspectFill" />
-      </button>
-      <view class="mygrades-profile-body" bindtap="goToProfile">
-        <view class="mygrades-profile-top">
-          <text class="mygrades-profile-name">{{userInfo.name || '未登录'}}</text>
-          <text wx:if="{{roleLabel}}" class="identity-badge identity-badge-role">{{roleLabel}}</text>
-          <text wx:if="{{levelLabel}}" class="identity-badge identity-badge-level">{{levelLabel}}</text>
-        </view>
-        <view class="mygrades-profile-meta">
-          <text wx:if="{{gender}}" class="mygrades-profile-meta-item">{{gender}}</text>
-          <text wx:if="{{age}}" class="mygrades-profile-meta-item">{{age}}岁</text>
-          <text wx:if="{{groupEntryDate}}" class="mygrades-profile-meta-item">进组: {{groupEntryDate}}</text>
-          <text wx:if="{{icaoExpiry}}" class="mygrades-profile-meta-item">ICAO: {{icaoExpiry}}</text>
-          <text wx:if="{{medicalExpiry}}" class="mygrades-profile-meta-item">体检: {{medicalExpiry}}</text>
-        </view>
+  <!-- 用户信息栏 -->
+  <view class="manager-profile-bar" bindtap="goToProfile">
+    <button class="mygrades-profile-avatar-btn" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
+      <image class="manager-avatar" src="{{avatarUrl}}" mode="aspectFill" />
+    </button>
+    <view class="manager-profile-meta">
+      <view class="manager-profile-name">
+        <text class="trend-user-name">{{userInfo.name || '未登录'}}</text>
+        <text wx:if="{{roleLabel}}" class="identity-badge identity-badge-role">{{roleLabel}}</text>
+        <text wx:if="{{levelLabel}}" class="identity-badge identity-badge-level">{{levelLabel}}</text>
+      </view>
+      <view class="manager-profile-meta-tags">
+        <text wx:if="{{gender}}" class="manager-profile-tag">{{gender}}</text>
+        <text wx:if="{{age}}" class="manager-profile-tag">{{age}}岁</text>
+        <text wx:if="{{groupEntryDate}}" class="manager-profile-tag">进组: {{groupEntryDate}}</text>
+        <text wx:if="{{icaoExpiry}}" class="manager-profile-tag">ICAO: {{icaoExpiry}}</text>
+        <text wx:if="{{medicalExpiry}}" class="manager-profile-tag">体检: {{medicalExpiry}}</text>
       </view>
     </view>
+    <text class="list-item-arrow">›</text>
   </view>
   <view class="manager-logout-btn" bindtap="logout">退出登录</view>
 
@@ -318,17 +317,21 @@
       <text class="bottom-panel-title">选择学员</text>
       <text class="bottom-panel-close" bindtap="closeStudentPanel">✕</text>
     </view>
-    <view class="bottom-panel-list">
+    <scroll-view class="bottom-panel-list" scroll-y="true" style="max-height: 55vh;">
       <view wx:for="{{students}}" wx:key="userId"
         class="bottom-panel-item"
         data-id="{{item.userId}}"
         bindtap="selectStudentFromPanel">
         <view class="bottom-panel-item-info">
           <view class="bottom-panel-item-name">{{item.name}}</view>
+          <view class="bottom-panel-item-desc">{{item.department || ''}} {{item.studentLevel || ''}}</view>
         </view>
         <text wx:if="{{selectedStudent && selectedStudent === item.userId}}" class="bottom-panel-item-check">✓</text>
       </view>
-    </view>
+      <view wx:if="{{students.length === 0}}" class="empty-state empty-state-compact" style="padding: 40rpx 0;">
+        <view class="empty-text">暂无学员数据</view>
+      </view>
+    </scroll-view>
   </view>
 
   <!-- 提交确认弹窗 -->
