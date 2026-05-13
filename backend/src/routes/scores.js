@@ -134,4 +134,13 @@ router.delete('/:scoreId', verifyToken, async (req, res) => {
   }
 });
 
+// Stub 路由：/api/score-config/pending-count
+router.get('/pending-count', verifyToken, async (req, res) => {
+  try {
+    res.status(200).json({ success: true, data: { count: 0 }, message: '待考核数量' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '获取待考核数量失败: ' + error.message });
+  }
+});
+
 export default router;

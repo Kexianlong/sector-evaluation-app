@@ -193,4 +193,21 @@ router.delete('/:userId', async (req, res) => {
   }
 });
 
+// Stub 路由：前端调用但后端暂未实现完整功能
+router.get('/reminders', verifyToken, async (req, res) => {
+  try {
+    res.status(200).json({ success: true, data: [], message: '提醒列表' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '获取提醒失败: ' + error.message });
+  }
+});
+
+router.get('/my-reminders', verifyToken, async (req, res) => {
+  try {
+    res.status(200).json({ success: true, data: [], message: '我的提醒' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '获取提醒失败: ' + error.message });
+  }
+});
+
 export default router;

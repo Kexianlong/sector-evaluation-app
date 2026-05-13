@@ -13,8 +13,8 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 app.use((req, res, next) => {
   const ts = new Date().toISOString();
@@ -54,6 +54,7 @@ async function setup() {
     app.use('/api/users', userRoutes.default);
     app.use('/api/sectors', sectorRoutes.default);
     app.use('/api/scores', scoreRoutes.default);
+    app.use('/api/score-config', scoreRoutes.default);
     app.use('/api/trends', trendRoutes.default);
     app.use('/api/export', exportRoutes.default);
     app.use('/api/batch', batchRoutes.default);
