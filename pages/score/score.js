@@ -450,11 +450,25 @@ Page({
     if (canScore || isManager) {
       this.loadStudents().then(() => {
         if (lastStudent) {
+          // 优先使用上次记忆的学员
           const student = this.data.students.find(s => s.userId === lastStudent);
           if (student) {
             this.setData({ selectedStudent: student.userId, selectedStudentName: student.name });
             if (canScore) this.loadHistory();
           }
+        } else {
+          // 首次进入，默认选择第一个责任学员
+          const responsibleStudents = (userInfo && userInfo.responsibleStudents) || [];
+          if (responsibleStudents.length > 0) {
+            const firstId = responsibleStudents[0];
+            const student = this.data.students.find(s => s.userId === firstId);
+            if (student) {
+              this.setData({ selectedStudent: student.userId, selectedStudentName: student.name });
+              wx.setStorageSync('lastSelectedStudentId', student.userId);
+              if (canScore) this.loadHistory();
+            }
+          }
+          // 如果没有责任学员，保持不选中状态
         }
       });
     }
