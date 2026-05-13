@@ -47,6 +47,22 @@ router.get('/me', verifyToken, async (req, res) => {
   }
 });
 
+// 更新当前登录用户的个人信息（用于登录时补全资料）
+router.put('/me', verifyToken, async (req, res) => {
+  try {
+    const updateData = { ...req.body };
+    delete updateData._id;
+    delete updateData.password;
+    delete updateData.userId;
+    delete updateData.username;
+    await User.update(req.user.userId, updateData);
+    const updated = await User.findById(req.user.userId);
+    res.status(200).json({ success: true, data: cleanUser(updated), message: '更新成功' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '更新失败: ' + error.message });
+  }
+});
+
 router.put('/password', verifyToken, async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
