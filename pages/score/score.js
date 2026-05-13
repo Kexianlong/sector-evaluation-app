@@ -273,11 +273,17 @@ const SECTOR_CONFIGS = {
 
 const STUDENT_COLORS = ['#00d26a', '#60a5fa', '#ffaa00', '#ff4d4f', '#a78bfa', '#f472b6'];
 
-function getGrade(total) {
+function getGrade(total, categoryScores) {
+  // 检查每个分类是否达到最低分要求
+  const allPassMin = !categoryScores || categoryScores.every(
+    c => c.minScore == null || (c.score || 0) >= c.minScore
+  );
+  if (!allPassMin || total < 85) {
+    return { text: '不合格', color: '#ff4d4f' };
+  }
   if (total >= 95) return { text: '优秀', color: '#00d26a' };
   if (total >= 90) return { text: '良好', color: '#ffaa00' };
-  if (total >= 85) return { text: '合格', color: '#60a5fa' };
-  return { text: '不合格', color: '#ff4d4f' };
+  return { text: '合格', color: '#60a5fa' };
 }
 
 function seededRandom(seed) {
@@ -875,7 +881,11 @@ Page({
       }
       categoryColors[cat.id] = color;
     });
-    const g = getGrade(total);
+    const categoryScoreList = config.categories.map(cat => ({
+      score: categoryScores[cat.id] || 0,
+      minScore: cat.minScore
+    }));
+    const g = getGrade(total, categoryScoreList);
     const totalProgressPct = config.totalScore ? Math.max(0, Math.min(100, Math.round((total / config.totalScore) * 100))) : 0;
     let totalItemCount = 0;
     let scoredItemCount = 0;
@@ -903,6 +913,25 @@ Page({
       return;
     }
     const config = this.data.sectorConfig;
+    // 验证 1：所有细项必须已打分
+    for (const cat of config.categories) {
+      for (const item of cat.items) {
+        if (!item.maxScore || item.maxScore <= 0) continue;
+        const key = `${cat.id}_${item.id}`;
+        const itemScore = this.data.scores[key];
+        if (itemScore === undefined || itemScore === null || itemScore === '') {
+          this.setData({ expandedCategory: cat.id });
+          wx.showToast({ title: `【${cat.name} - ${item.name}】尚未打分`, icon: 'none', duration: 3000 });
+          return;
+        }
+        if (itemScore > item.maxScore) {
+          this.setData({ expandedCategory: cat.id });
+          wx.showToast({ title: `【${cat.name} - ${item.name}】得分${itemScore}超过满分${item.maxScore}`, icon: 'none', duration: 3000 });
+          return;
+        }
+      }
+    }
+    // 验证 2：扣分项必须填写说明
     for (const cat of config.categories) {
       for (const item of cat.items) {
         if (!item.maxScore || item.maxScore <= 0) continue;
@@ -942,7 +971,11 @@ Page({
     this.setData({ showSubmitConfirm: false });
     const config = this.data.sectorConfig;
     const totalScore = config.categories.reduce((sum, cat) => sum + this.getCategoryScore(cat), 0);
-    const grade = getGrade(totalScore);
+    const categoryScoreList = config.categories.map(cat => ({
+      score: this.getCategoryScore(cat),
+      minScore: cat.minScore
+    }));
+    const grade = getGrade(totalScore, categoryScoreList);
     const student = this.data.students.find(s => s.userId === this.data.selectedStudent);
     const payload = {
       studentId: this.data.selectedStudent,

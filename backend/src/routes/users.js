@@ -28,22 +28,6 @@ router.get('/debug/doc', async (req, res) => {
   }
 });
 
-router.get('/reminders', verifyToken, async (req, res) => {
-  try {
-    res.status(200).json({ success: true, data: [], message: '提醒列表' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: '获取提醒失败: ' + error.message });
-  }
-});
-
-router.get('/my-reminders', verifyToken, async (req, res) => {
-  try {
-    res.status(200).json({ success: true, data: [], message: '我的提醒' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: '获取提醒失败: ' + error.message });
-  }
-});
-
 router.get('/students', verifyToken, async (req, res) => {
   try {
     const { includeReleased } = req.query;
@@ -178,7 +162,7 @@ router.put('/:userId', async (req, res) => {
     if (!canAccessDepartment(req.user, existing.department)) {
       return res.status(403).json({ success: false, message: '无权修改该用户' });
     }
-    const { username, password, name, department, team, role, studentLevel, instructorLevel, gender, birthDate, phone, photoUrl, groupEntryDate, icaoDate, medicalDate, responsibleInstructor, responsibleStudents } = req.body;
+    const { username, password, name, department, team, role, studentLevel, instructorLevel } = req.body;
     if (role && !manageableRoles.includes(role)) {
       return res.status(403).json({ success: false, message: '无权将该用户修改为该角色' });
     }
@@ -194,15 +178,6 @@ router.put('/:userId', async (req, res) => {
     if (team !== undefined) updateData.team = team;
     if (studentLevel !== undefined) updateData.studentLevel = studentLevel;
     if (instructorLevel !== undefined) updateData.instructorLevel = instructorLevel;
-    if (gender !== undefined) updateData.gender = gender;
-    if (birthDate !== undefined) updateData.birthDate = birthDate;
-    if (phone !== undefined) updateData.phone = phone;
-    if (photoUrl !== undefined) updateData.photoUrl = photoUrl;
-    if (groupEntryDate !== undefined) updateData.groupEntryDate = groupEntryDate;
-    if (icaoDate !== undefined) updateData.icaoDate = icaoDate;
-    if (medicalDate !== undefined) updateData.medicalDate = medicalDate;
-    if (responsibleInstructor !== undefined) updateData.responsibleInstructor = responsibleInstructor;
-    if (responsibleStudents !== undefined) updateData.responsibleStudents = responsibleStudents;
     if (Object.keys(updateData).length > 0) {
       await User.update(userId, updateData);
     }
@@ -227,6 +202,23 @@ router.delete('/:userId', async (req, res) => {
     res.status(200).json({ success: true, message: '用户已删除' });
   } catch (error) {
     res.status(500).json({ success: false, message: '删除用户失败: ' + error.message });
+  }
+});
+
+// Stub 路由：前端调用但后端暂未实现完整功能
+router.get('/reminders', verifyToken, async (req, res) => {
+  try {
+    res.status(200).json({ success: true, data: [], message: '提醒列表' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '获取提醒失败: ' + error.message });
+  }
+});
+
+router.get('/my-reminders', verifyToken, async (req, res) => {
+  try {
+    res.status(200).json({ success: true, data: [], message: '我的提醒' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '获取提醒失败: ' + error.message });
   }
 });
 
