@@ -1,0 +1,6 @@
+{
+  "envId": "cloud1-d9g2y40ql2eb2cc4a",
+  "cloudrun": {
+    "name": "sector-eval-api"
+  }
+}

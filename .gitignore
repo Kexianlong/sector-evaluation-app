@@ -22,3 +22,10 @@ project.private.config.json
 # 构建产物
 miniprogram_npm/
 dist/
+
+# CodeBuddy / MCP 临时文件
+.mcp.json
+.rules/
+CODEBUDDY.md
+codebuddy-plugin/
+rules/
