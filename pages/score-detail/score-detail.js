@@ -231,7 +231,7 @@ Page({
     const userId = e.currentTarget.dataset.userid;
     if (!userId) return;
     wx.navigateTo({
-      url: '/pages/profile/profile?userId=' + userId,
+      url: '/pages/student-profile/student-profile?studentId=' + userId,
       fail: function(err) {
         wx.showToast({ title: '跳转失败:' + ((err && err.errMsg) || '未知错误'), icon: 'none' });
       }

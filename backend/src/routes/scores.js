@@ -56,6 +56,23 @@ router.get('/student/:studentId/sector/:sectorId', verifyToken, async (req, res)
   }
 });
 
+router.get('/student/:studentId/history', verifyToken, async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    let scores = await Score.findByStudentId(studentId);
+    if (req.user.role !== 'center_director' && req.user.department) {
+      const allUsers = await User.findAll();
+      const deptMap = {};
+      for (const u of allUsers) deptMap[u.userId] = u.department || '';
+      scores = scores.filter(s => deptMap[s.studentId] === req.user.department);
+    }
+    scores.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    res.status(200).json({ success: true, data: scores });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '获取学员成绩历史失败' });
+  }
+});
+
 router.get('/instructor/:instructorId/history', verifyToken, async (req, res) => {
   try {
     const { instructorId } = req.params;

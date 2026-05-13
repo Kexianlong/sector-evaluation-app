@@ -88,8 +88,14 @@ Page({
 
   goToProfile(e) {
     const userId = e.currentTarget.dataset.id;
+    const role = e.currentTarget.dataset.role;
     if (!userId) return;
-    wx.navigateTo({ url: '/pages/profile/profile?userId=' + userId });
+    // 学员跳转到专门的学员详情页（含成绩概览、曲线图等）
+    if (role === 'student') {
+      wx.navigateTo({ url: '/pages/student-profile/student-profile?studentId=' + userId });
+    } else {
+      wx.navigateTo({ url: '/pages/profile/profile?userId=' + userId });
+    }
   },
 
   // 计算到期状态

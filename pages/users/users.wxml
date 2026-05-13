@@ -92,7 +92,7 @@
       <view class="empty-text">暂无用户数据</view>
     </view>
 
-    <view wx:for="{{filteredUsers}}" wx:key="userId" class="list-item user-compact-row" bindtap="goToProfile" data-id="{{item.userId}}" hover-class="user-compact-row--active">
+    <view wx:for="{{filteredUsers}}" wx:key="userId" class="list-item user-compact-row" bindtap="goToProfile" data-id="{{item.userId}}" data-role="{{item.role}}" hover-class="user-compact-row--active">
       <view class="user-compact-avatar">
         <image class="user-compact-avatar-img" src="{{item.avatarUrl}}" mode="aspectFill" />
       </view>

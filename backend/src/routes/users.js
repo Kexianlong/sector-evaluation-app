@@ -17,6 +17,17 @@ function cleanUser(u) {
   return rest;
 }
 
+// 临时调试接口
+router.get('/debug/doc', async (req, res) => {
+  try {
+    const users = await User.findAll();
+    const first = users[0];
+    res.status(200).json({ success: true, data: { keys: first ? Object.keys(first) : [], firstUser: first, total: users.length } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 router.get('/students', verifyToken, async (req, res) => {
   try {
     const { includeReleased } = req.query;
@@ -67,6 +78,20 @@ router.put('/:userId/release', verifyToken, requireRole(['supervisor', 'deputy_d
   }
 });
 
+// 获取单个用户信息：任何已登录用户都可以查看（用于个人资料、学员详情等）
+router.get('/:userId', verifyToken, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: '用户不存在' });
+    }
+    res.status(200).json({ success: true, data: cleanUser(user) });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '获取用户详情失败' });
+  }
+});
+
 router.use(verifyToken, requireRole(['deputy_director', 'supervisor', 'department_head', 'center_director']));
 
 router.get('/', async (req, res) => {
@@ -90,19 +115,6 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, message: '获取用户列表失败: ' + error.message });
-  }
-});
-
-router.get('/:userId', async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ success: false, message: '用户不存在' });
-    }
-    res.status(200).json({ success: true, data: cleanUser(user) });
-  } catch (error) {
-    res.status(500).json({ success: false, message: '获取用户详情失败' });
   }
 });
 
